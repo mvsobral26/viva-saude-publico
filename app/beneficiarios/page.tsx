@@ -277,18 +277,18 @@ export default function BeneficiariosPage() {
   return (
     <AppShell active="beneficiarios">
       <div className="flex min-w-0 flex-col gap-6">
-        <section className="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 xl:p-6">
           <PageHeader
             eyebrow="Fila operacional"
             title="Beneficiários"
             description="Organize a carteira como um CRM de cuidado: quem atuar agora, quem ativar nesta semana e quem pode seguir em monitoramento preventivo, sem perder a próxima melhor ação."
             meta={
-              <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 lg:w-auto">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
                 {beneficiariosFiltrados.length} beneficiário(s) na fila atual
               </div>
             }
             actions={
-              <div className="flex w-full flex-wrap gap-2 xl:w-auto xl:justify-end">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant={modo === 'Fila operacional' ? 'primary' : 'secondary'}
@@ -322,8 +322,8 @@ export default function BeneficiariosPage() {
             </div>
           )}
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
-            <div className="sm:col-span-2 xl:col-span-2 2xl:col-span-2">
+          <div className="mt-6 grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+            <div className="md:col-span-2 2xl:col-span-2">
               <label className="mb-2 block text-sm font-medium text-slate-700">Buscar por nome ou CPF</label>
               <input
                 type="text"
@@ -458,7 +458,7 @@ export default function BeneficiariosPage() {
           </div>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+        <section className="grid min-w-0 gap-4 xl:grid-cols-2 2xl:grid-cols-4">
           <div className={`rounded-3xl border p-5 shadow-sm ${queueColors.immediate.border} ${queueColors.immediate.surface}`}>
             <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${queueColors.immediate.text}`}>Prioridade máxima</p>
             <p className={`mt-3 text-3xl font-bold ${queueColors.immediate.textStrong}`}>{resumoFila.acaoImediata.length}</p>
@@ -485,7 +485,7 @@ export default function BeneficiariosPage() {
         </section>
 
         {modo === 'Fila operacional' ? (
-          <section className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+          <section className="grid min-w-0 gap-4 xl:grid-cols-3">
             {colunasFila.map((coluna) => {
               const visual = getFilaVisual(coluna.status);
               const totalEtapa = beneficiariosFiltrados.filter((item) => item.filaStatus === coluna.status).length;
@@ -494,7 +494,7 @@ export default function BeneficiariosPage() {
               return (
                 <div
                   key={coluna.status}
-                  className={`rounded-3xl border p-5 shadow-sm ${visual.summaryWrapper}`}
+                  className={`min-w-0 rounded-3xl border p-5 shadow-sm ${visual.summaryWrapper}`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -584,9 +584,9 @@ export default function BeneficiariosPage() {
             })}
           </section>
         ) : null}
-        <section className="min-w-0 rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
-            <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Base operacional da fila</h2>
                 <p className="mt-1 text-sm text-slate-500">
@@ -594,14 +594,14 @@ export default function BeneficiariosPage() {
                 </p>
               </div>
 
-              <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 lg:w-auto">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
                 Página {paginaSegura} de {totalPaginas}. Exibindo {inicioItem}–{fimItem} de {beneficiariosFiltrados.length} registros filtrados.
               </div>
             </div>
           </div>
 
-          <div className="max-w-full overflow-x-auto">
-            <table className="min-w-[1520px] w-full text-left">
+          <div className="min-w-0 overflow-x-auto">
+            <table className="min-w-[1500px] text-left xl:min-w-[1650px] 2xl:min-w-full">
               <thead className="bg-slate-50">
                 <tr className="text-sm text-slate-500">
                   <th className="px-6 py-4">Beneficiário</th>
