@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AppShell from '../components/AppShell';
 import Badge, {
@@ -94,7 +94,7 @@ function getLinhaDestaqueClasses(beneficiario: BeneficiarioOperacional) {
   return 'hover:bg-slate-50 focus:bg-slate-50';
 }
 
-export default function BeneficiariosPage() {
+function BeneficiariosPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -717,5 +717,20 @@ export default function BeneficiariosPage() {
         </section>
       </div>
     </AppShell>
+  );
+}
+
+
+function BeneficiariosPageFallback() {
+  return (
+    <div className="min-h-screen bg-slate-50" />
+  );
+}
+
+export default function BeneficiariosPage() {
+  return (
+    <Suspense fallback={<BeneficiariosPageFallback />}>
+      <BeneficiariosPageContent />
+    </Suspense>
   );
 }
