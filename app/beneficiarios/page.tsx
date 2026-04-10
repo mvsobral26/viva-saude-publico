@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AppShell from '../components/AppShell';
 import Badge, {
@@ -94,7 +94,7 @@ function getLinhaDestaqueClasses(beneficiario: BeneficiarioOperacional) {
   return 'hover:bg-slate-50 focus:bg-slate-50';
 }
 
-function BeneficiariosPageContent() {
+export default function BeneficiariosPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -276,19 +276,19 @@ function BeneficiariosPageContent() {
 
   return (
     <AppShell active="beneficiarios">
-      <div className="flex min-w-0 max-w-full flex-col gap-6 overflow-x-hidden">
-        <section className="w-full min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex min-w-0 flex-col gap-6">
+        <section className="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <PageHeader
             eyebrow="Fila operacional"
             title="Beneficiários"
             description="Organize a carteira como um CRM de cuidado: quem atuar agora, quem ativar nesta semana e quem pode seguir em monitoramento preventivo, sem perder a próxima melhor ação."
             meta={
-              <div className="max-w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 lg:w-auto">
                 {beneficiariosFiltrados.length} beneficiário(s) na fila atual
               </div>
             }
             actions={
-              <div className="flex w-full flex-wrap justify-start gap-2 xl:justify-end">
+              <div className="flex w-full flex-wrap gap-2 xl:w-auto xl:justify-end">
                 <Button
                   type="button"
                   variant={modo === 'Fila operacional' ? 'primary' : 'secondary'}
@@ -308,7 +308,7 @@ function BeneficiariosPageContent() {
           />
 
           {areaInicial && (
-            <div className="mt-5 flex min-w-0 flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-emerald-700">Filtro de área aplicado</p>
                 <p className="mt-1 text-sm text-emerald-900">
@@ -322,8 +322,8 @@ function BeneficiariosPageContent() {
             </div>
           )}
 
-          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
-            <div className="md:col-span-2 xl:col-span-2 2xl:col-span-2">
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
+            <div className="sm:col-span-2 xl:col-span-2 2xl:col-span-2">
               <label className="mb-2 block text-sm font-medium text-slate-700">Buscar por nome ou CPF</label>
               <input
                 type="text"
@@ -458,7 +458,7 @@ function BeneficiariosPageContent() {
           </div>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
           <div className={`rounded-3xl border p-5 shadow-sm ${queueColors.immediate.border} ${queueColors.immediate.surface}`}>
             <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${queueColors.immediate.text}`}>Prioridade máxima</p>
             <p className={`mt-3 text-3xl font-bold ${queueColors.immediate.textStrong}`}>{resumoFila.acaoImediata.length}</p>
@@ -485,7 +485,7 @@ function BeneficiariosPageContent() {
         </section>
 
         {modo === 'Fila operacional' ? (
-          <section className="grid items-start gap-4 2xl:grid-cols-3">
+          <section className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
             {colunasFila.map((coluna) => {
               const visual = getFilaVisual(coluna.status);
               const totalEtapa = beneficiariosFiltrados.filter((item) => item.filaStatus === coluna.status).length;
@@ -494,9 +494,9 @@ function BeneficiariosPageContent() {
               return (
                 <div
                   key={coluna.status}
-                  className={`min-w-0 overflow-hidden rounded-3xl border p-5 shadow-sm ${visual.summaryWrapper}`}
+                  className={`rounded-3xl border p-5 shadow-sm ${visual.summaryWrapper}`}
                 >
-                  <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
+                  <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${visual.title}`}>
                         {coluna.title}
@@ -584,9 +584,9 @@ function BeneficiariosPageContent() {
             })}
           </section>
         ) : null}
-        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <section className="min-w-0 rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Base operacional da fila</h2>
                 <p className="mt-1 text-sm text-slate-500">
@@ -594,14 +594,14 @@ function BeneficiariosPageContent() {
                 </p>
               </div>
 
-              <div className="max-w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 lg:w-auto">
                 Página {paginaSegura} de {totalPaginas}. Exibindo {inicioItem}–{fimItem} de {beneficiariosFiltrados.length} registros filtrados.
               </div>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-[1780px] text-left">
+          <div className="max-w-full overflow-x-auto">
+            <table className="min-w-[1520px] w-full text-left">
               <thead className="bg-slate-50">
                 <tr className="text-sm text-slate-500">
                   <th className="px-6 py-4">Beneficiário</th>
@@ -717,13 +717,5 @@ function BeneficiariosPageContent() {
         </section>
       </div>
     </AppShell>
-  );
-}
-
-export default function BeneficiariosPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
-      <BeneficiariosPageContent />
-    </Suspense>
   );
 }
