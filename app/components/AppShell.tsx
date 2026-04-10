@@ -1,4 +1,3 @@
-
 import type { ReactNode } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
@@ -12,14 +11,12 @@ type AppShellProps = {
 
 export default function AppShell({ children, active = 'dashboard' }: AppShellProps) {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-slate-100">
-      <div className="flex min-h-screen flex-col lg:flex-row">
+    <div className="min-h-screen w-full overflow-x-hidden bg-slate-100">
+      <div className="flex min-h-screen w-full min-w-0">
         <Sidebar active={active} />
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden">
           <Topbar />
-          <main className="min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-6 xl:px-8">
-            <div className="mx-auto w-full max-w-[1720px] min-w-0">{children}</div>
-          </main>
+          <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 xl:p-8">{children}</main>
         </div>
       </div>
     </div>
