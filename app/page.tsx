@@ -8,6 +8,7 @@ import StatCard from './components/StatCard';
 import { beneficiariosMock } from './data/mock';
 import { gerarResumoScore } from './utils/healthScore';
 import { gerarEvolucaoRisco } from './utils/riskEvolution';
+import { identificarOportunidadeEficiencia, type TipoOportunidade } from './utils/efficiency';
 
 type Risco = 'Alto' | 'Médio' | 'Baixo';
 
@@ -15,6 +16,14 @@ function getBarColor(label: Risco) {
   if (label === 'Alto') return 'bg-red-500';
   if (label === 'Médio') return 'bg-amber-500';
   return 'bg-emerald-500';
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 export default function Home() {
@@ -36,6 +45,24 @@ export default function Home() {
     []
   );
 
+  const oportunidades = useMemo(() => {
+    const base = {
+      'PA evitável': 0,
+      'Exame com possível redundância': 0,
+      'Consulta com baixa resolutividade': 0,
+      'Repetição assistencial': 0,
+    } as Record<TipoOportunidade, number>;
+
+    beneficiariosMock.forEach((beneficiario) => {
+      const oportunidade = identificarOportunidadeEficiencia(beneficiario);
+      if (oportunidade) {
+        base[oportunidade] += 1;
+      }
+    });
+
+    return base;
+  }, []);
+
   const alto = beneficiariosMock.filter((b) => b.risco === 'Alto').length;
   const medio = beneficiariosMock.filter((b) => b.risco === 'Médio').length;
   const baixo = beneficiariosMock.filter((b) => b.risco === 'Baixo').length;
@@ -47,6 +74,11 @@ export default function Home() {
   const riscoFuturoAlto = evolucoes.filter(({ evolucao }) => evolucao.riscoFuturo === 'Alto').length;
 
   const custoTotal = beneficiariosMock.reduce((acc, item) => acc + item.custoPotencial30d, 0);
+  const custoOportunidades =
+    oportunidades['PA evitável'] * 2400 +
+    oportunidades['Exame com possível redundância'] * 1650 +
+    oportunidades['Consulta com baixa resolutividade'] * 1420 +
+    oportunidades['Repetição assistencial'] * 1580;
 
   const scoreMedio =
     total > 0
@@ -58,6 +90,13 @@ export default function Home() {
       b.status.toLowerCase().includes('sem acompanhamento') ||
       !b.declaracao.acompanhamentoRegular ||
       b.ultimoEventoDias > 90
+  ).length;
+
+  const baseEstavel = evolucoes.filter(
+    ({ beneficiario, evolucao }) =>
+      beneficiario.risco === 'Baixo' &&
+      evolucao.riscoFuturo === 'Baixo' &&
+      (evolucao.nivelPreRisco === 'Estável' || evolucao.nivelPreRisco === 'Monitorar')
   ).length;
 
   const topCriticos = useMemo(() => {
@@ -81,6 +120,7 @@ export default function Home() {
         altoRiscoFuturo: number;
         scoreTotal: number;
         custoTotal: number;
+        categorias: Record<string, number>;
       }
     >();
 
@@ -92,11 +132,14 @@ export default function Home() {
         altoRiscoFuturo: 0,
         scoreTotal: 0,
         custoTotal: 0,
+        categorias: {},
       };
 
       atual.total += 1;
       atual.scoreTotal += beneficiario.score;
       atual.custoTotal += beneficiario.custoPotencial30d;
+      atual.categorias[evolucao.categoriaPrincipal] = (atual.categorias[evolucao.categoriaPrincipal] ?? 0) + 1;
+
       if (beneficiario.risco === 'Alto') atual.altoRisco += 1;
       if (evolucao.riscoFuturo === 'Alto') atual.altoRiscoFuturo += 1;
 
@@ -104,10 +147,16 @@ export default function Home() {
     });
 
     return Array.from(mapa.values())
-      .map((item) => ({
-        ...item,
-        scoreMedio: Math.round(item.scoreTotal / item.total),
-      }))
+      .map((item) => {
+        const principalDriver =
+          Object.entries(item.categorias).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Sem sinal relevante';
+
+        return {
+          ...item,
+          scoreMedio: Math.round(item.scoreTotal / item.total),
+          principalDriver,
+        };
+      })
       .sort((a, b) => {
         if (b.altoRiscoFuturo !== a.altoRiscoFuturo) return b.altoRiscoFuturo - a.altoRiscoFuturo;
         if (b.altoRisco !== a.altoRisco) return b.altoRisco - a.altoRisco;
@@ -124,6 +173,29 @@ export default function Home() {
     };
   }, [evolucoes]);
 
+  const principaisOportunidades = [
+    {
+      tipo: 'PA evitável' as TipoOportunidade,
+      valor: oportunidades['PA evitável'],
+      descricao: 'Uso recorrente de pronto atendimento em janela curta.',
+    },
+    {
+      tipo: 'Exame com possível redundância' as TipoOportunidade,
+      valor: oportunidades['Exame com possível redundância'],
+      descricao: 'Mesma solicitação repetida sem ganho assistencial aparente.',
+    },
+    {
+      tipo: 'Consulta com baixa resolutividade' as TipoOportunidade,
+      valor: oportunidades['Consulta com baixa resolutividade'],
+      descricao: 'Múltiplas consultas sem fechamento assistencial consistente.',
+    },
+    {
+      tipo: 'Repetição assistencial' as TipoOportunidade,
+      valor: oportunidades['Repetição assistencial'],
+      descricao: 'Recorrência de eventos em até 30 dias com potencial de otimização.',
+    },
+  ].sort((a, b) => b.valor - a.valor);
+
   if (!autorizado) return null;
 
   return (
@@ -136,11 +208,7 @@ export default function Home() {
         />
         <StatCard
           title="Custo potencial total"
-          value={new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-            maximumFractionDigits: 0,
-          }).format(custoTotal)}
+          value={formatCurrency(custoTotal)}
           subtitle="Estimativa para 30 dias"
         />
         <StatCard
@@ -156,8 +224,116 @@ export default function Home() {
         <StatCard
           title="Risco futuro alto"
           value={String(riscoFuturoAlto)}
-          subtitle="Horizonte prognóstico prioritário"
+          subtitle="Estimativa do modelo preditivo"
         />
+      </section>
+
+      <section className="mt-6 grid gap-6 xl:grid-cols-3">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                Modelo preditivo
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">Leitura de risco futuro</h2>
+            </div>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              Score + eventos + continuidade
+            </span>
+          </div>
+
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            O risco futuro é estimado a partir do histórico assistencial, padrão de uso, alertas e sinais de
+            descontinuidade de cuidado, tornando explícita a lógica preditiva do MVP.
+          </p>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Health Score preditivo médio
+              </p>
+              <p className="mt-2 text-3xl font-bold text-slate-900">{scoreMedio}</p>
+              <p className="mt-2 text-sm text-slate-500">Visão consolidada da carteira monitorada.</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Base estável</p>
+              <p className="mt-2 text-3xl font-bold text-emerald-700">{baseEstavel}</p>
+              <p className="mt-2 text-sm text-slate-500">Baixo risco atual e futuro, com seguimento preservado.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+                Valor de negócio
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">Impacto financeiro estimado</h2>
+            </div>
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+              Horizonte de 30 dias
+            </span>
+          </div>
+
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Estimativa baseada no custo potencial assistencial já projetado pela carteira e nas oportunidades
+            identificadas de intervenção em uso evitável, redundância e baixa resolutividade.
+          </p>
+
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Economia potencial endereçável</p>
+            <p className="mt-2 text-3xl font-bold text-slate-900">{formatCurrency(custoOportunidades)}</p>
+            <p className="mt-2 text-sm text-slate-500">
+              Leitura executiva para priorizar frentes com maior retorno assistencial e financeiro.
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">PA evitável</p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{oportunidades['PA evitável']}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Redundância / baixa resolução</p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">
+                {oportunidades['Exame com possível redundância'] + oportunidades['Consulta com baixa resolutividade']}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+                Eficiência assistencial
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">Oportunidades prioritárias</h2>
+            </div>
+            <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+              Foco operacional
+            </span>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {principaisOportunidades.map((item) => (
+              <Link
+                key={item.tipo}
+                href="/eficiencia"
+                className="block rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-emerald-300 hover:bg-white"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-base font-semibold text-slate-900">{item.tipo}</p>
+                    <p className="mt-1 text-sm text-slate-500">{item.descricao}</p>
+                  </div>
+                  <p className="text-2xl font-bold text-slate-900">{item.valor}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="mt-6 grid gap-6 xl:grid-cols-2">
@@ -196,9 +372,9 @@ export default function Home() {
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-2xl font-bold text-slate-900">Distribuição por risco futuro</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Distribuição por risco futuro estimado</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Probabilidade de migração de risco com base em score atual, eventos, alertas e continuidade de cuidado.
+            Probabilidade de migração de risco com base no score preditivo, eventos, alertas e continuidade de cuidado.
           </p>
 
           <div className="mt-6 space-y-5">
@@ -230,7 +406,9 @@ export default function Home() {
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Health Score médio</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Health Score preditivo médio
+              </p>
               <p className="mt-2 text-3xl font-bold text-slate-900">{scoreMedio}</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -245,7 +423,7 @@ export default function Home() {
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-bold text-slate-900">Top áreas prioritárias</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Áreas com maior concentração de risco futuro alto e maior necessidade de intervenção precoce.
+            Áreas com maior concentração de risco futuro alto e principal driver clínico-operacional para intervenção.
           </p>
 
           <div className="mt-6 space-y-4">
@@ -262,18 +440,15 @@ export default function Home() {
                     <p className="mt-1 text-sm text-slate-500">
                       {area.total} beneficiário(s) • {area.altoRisco} alto risco atual • {area.altoRiscoFuturo} alto risco futuro
                     </p>
+                    <p className="mt-2 text-sm font-medium text-slate-700">
+                      Principal driver: {area.principalDriver}
+                    </p>
                   </div>
 
                   <div className="text-left sm:text-right">
                     <p className="text-sm text-slate-500">Score médio</p>
                     <p className="text-2xl font-bold text-slate-900">{area.scoreMedio}</p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                        maximumFractionDigits: 0,
-                      }).format(area.custoTotal)}
-                    </p>
+                    <p className="mt-1 text-sm text-slate-500">{formatCurrency(area.custoTotal)}</p>
                   </div>
                 </div>
               </Link>
@@ -309,12 +484,8 @@ export default function Home() {
                   </div>
                 </div>
 
-                <p className="mt-3 text-sm text-slate-700">
-                  {gerarResumoScore(beneficiario, beneficiario.score)}
-                </p>
-                <p className="mt-2 text-sm text-slate-500">
-                  {evolucao.justificativaAnalitica}
-                </p>
+                <p className="mt-3 text-sm text-slate-700">{gerarResumoScore(beneficiario, beneficiario.score)}</p>
+                <p className="mt-2 text-sm text-slate-500">{evolucao.justificativaAnalitica}</p>
               </Link>
             ))}
           </div>
