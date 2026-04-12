@@ -647,6 +647,7 @@ function BeneficiariosPageContent() {
               </div>
             )}
           </div>
+        </section>
 
 
         <section className="grid min-w-0 gap-4 xl:grid-cols-2 2xl:grid-cols-4">
