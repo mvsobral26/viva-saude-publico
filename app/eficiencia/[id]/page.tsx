@@ -150,7 +150,7 @@ export default function EficienciaDetalhePage() {
                   Potencial de otimização
                 </p>
                 <p className="mt-2 text-3xl font-bold text-emerald-700">
-                  {resumo.impacto}%
+                  {resumo.potencialOtimizacao}%
                 </p>
               </div>
             </div>

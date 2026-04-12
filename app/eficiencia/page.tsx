@@ -74,7 +74,7 @@ export default function EficienciaAssistencialPage() {
   const totais = useMemo(
     () => ({
       totalCusto: oportunidades.reduce((soma, item) => soma + item.custo, 0),
-      totalEventos: oportunidades.length,
+      totalCasos: oportunidades.length,
       totalBeneficiarios: new Set(oportunidades.map((item) => item.beneficiarioId)).size,
       percentual: Math.round((new Set(oportunidades.map((item) => item.beneficiarioId)).size / beneficiariosMock.length) * 100),
     }),
@@ -115,11 +115,11 @@ export default function EficienciaAssistencialPage() {
     }
 
     if (dominante.tipo === 'PA evitável') {
-      return 'A maior concentração de custo está associada a uso recorrente de pronto atendimento dentro da janela crítica definida para o módulo.';
+      return 'A maior concentração de custo está associada a uso recorrente de pronto atendimento dentro da janela crítica de 45 dias definida para o módulo.';
     }
 
     if (dominante.tipo === 'Exame com possível redundância') {
-      return 'Há massa relevante de exames com repetição real de um mesmo exame em janela clínica curta, sugerindo oportunidade concreta de revisar indicação e protocolo.';
+      return 'Há massa relevante de exames com repetição real de um mesmo exame em janela clínica curta de até 15 dias, sugerindo oportunidade concreta de revisar indicação e protocolo.';
     }
 
     if (dominante.tipo === 'Consulta com baixa resolutividade') {
@@ -149,7 +149,7 @@ export default function EficienciaAssistencialPage() {
           </Card>
           <Card className="p-5">
             <p className="text-sm font-medium text-slate-500">Casos com oportunidade</p>
-            <p className="mt-2 text-3xl font-bold text-slate-900">{totais.totalEventos}</p>
+            <p className="mt-2 text-3xl font-bold text-slate-900">{totais.totalCasos}</p>
           </Card>
           <Card className="p-5">
             <p className="text-sm font-medium text-slate-500">Beneficiários impactados</p>
@@ -234,7 +234,7 @@ export default function EficienciaAssistencialPage() {
                   <th className="px-6 py-4">Tipo de oportunidade</th>
                   <th className="px-6 py-4">Frequência</th>
                   <th className="px-6 py-4">Custo estimado</th>
-                  <th className="px-6 py-4">Impacto</th>
+                  <th className="px-6 py-4">Potencial de otimização</th>
                   <th className="px-6 py-4">Ação sugerida</th>
                 </tr>
               </thead>
@@ -253,7 +253,7 @@ export default function EficienciaAssistencialPage() {
                     </td>
                     <td className="px-6 py-4 text-slate-600">{item.frequencia}</td>
                     <td className="px-6 py-4 font-semibold text-slate-900">{moeda(item.custo)}</td>
-                    <td className="px-6 py-4 text-slate-600">{item.impacto}%</td>
+                    <td className="px-6 py-4 text-slate-600">{item.potencialOtimizacao}%</td>
                     <td className="px-6 py-4 text-slate-600">{item.acao}</td>
                   </tr>
                 ))}

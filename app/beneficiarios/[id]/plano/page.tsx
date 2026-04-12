@@ -34,14 +34,14 @@ export default function PlanoAssistencialPage() {
   const acoes = useMemo(() => (beneficiario ? gerarAcoesIA(beneficiario) : []), [beneficiario]);
   const [concluidas, setConcluidas] = useState<string[]>([]);
 
-  const impactoReal = useMemo(() => {
+  const reducaoProjetada = useMemo(() => {
     return acoes
       .filter((acao) => concluidas.includes(acao.id))
       .reduce((acc, acao) => acc + acao.impacto, 0);
   }, [acoes, concluidas]);
 
   const scoreAtual = beneficiario?.score ?? 0;
-  const scoreReal = Math.max(0, scoreAtual - impactoReal);
+  const scoreReal = Math.max(0, scoreAtual - reducaoProjetada);
 
   const toggleStatus = (idAcao: string) => {
     setConcluidas((prev) =>
@@ -88,7 +88,7 @@ export default function PlanoAssistencialPage() {
 
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Impacto real</p>
-                <p className="mt-2 text-3xl font-bold text-emerald-700">{formatarReducao(impactoReal)}</p>
+                <p className="mt-2 text-3xl font-bold text-emerald-700">{formatarReducao(reducaoProjetada)}</p>
               </div>
 
               <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">

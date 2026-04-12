@@ -16,23 +16,17 @@ export type OportunidadeEficiencia = {
   tipo: TipoOportunidade;
   frequencia: string;
   custo: number;
-  impacto: number;
+  potencialOtimizacao: number;
   acao: string;
 };
 
+const JANELA_REDUNDANCIA_EXAME_DIAS = 15;
+const JANELA_PA_EVITAVEL_DIAS = 45;
+const JANELA_BAIXA_RESOLUTIVIDADE_DIAS = 120;
+const JANELA_REPETICAO_ASSISTENCIAL_DIAS = 30;
+
 function contarEventos(eventos: EventoMedico[], tipo: EventoMedico['tipo']) {
   return eventos.filter((evento) => evento.tipo === tipo);
-}
-
-function existeJanelaCurta(eventos: EventoMedico[], janelaMaxima: number) {
-  if (eventos.length < 2) return false;
-  const ordenados = [...eventos].sort((a, b) => a.diasAtras - b.diasAtras);
-  for (let i = 0; i < ordenados.length - 1; i += 1) {
-    if (Math.abs(ordenados[i + 1].diasAtras - ordenados[i].diasAtras) <= janelaMaxima) {
-      return true;
-    }
-  }
-  return false;
 }
 
 function eventosEmJanela(eventos: EventoMedico[], janela: number) {
@@ -68,13 +62,36 @@ function maiorGrupoCoincidente(eventos: EventoMedico[], janela: number) {
   return melhorGrupo.length >= 3 ? melhorGrupo : [];
 }
 
-export function obterEventosCoincidentesRepeticao(beneficiario: Beneficiario) {
-  return maiorGrupoCoincidente(beneficiario.eventos ?? [], 30);
+type GrupoExamesRedundantes = {
+  nome: string | null;
+  grupo: EventoMedico[];
+};
+
+function obterMelhorJanelaRedundante(grupo: EventoMedico[], janelaMaxima: number) {
+  if (grupo.length < 2) return [];
+
+  const ordenados = [...grupo].sort((a, b) => a.diasAtras - b.diasAtras);
+  let melhorJanela: EventoMedico[] = [];
+  let inicio = 0;
+
+  for (let fim = 0; fim < ordenados.length; fim += 1) {
+    while (ordenados[fim].diasAtras - ordenados[inicio].diasAtras > janelaMaxima) {
+      inicio += 1;
+    }
+
+    const janelaAtual = ordenados.slice(inicio, fim + 1);
+    if (janelaAtual.length >= 2 && janelaAtual.length > melhorJanela.length) {
+      melhorJanela = janelaAtual;
+    }
+  }
+
+  return melhorJanela;
 }
 
-function grupoRedundante(exames: EventoMedico[]) {
+function grupoRedundante(exames: EventoMedico[]): GrupoExamesRedundantes {
   const grupos = exames.reduce((acc, exame) => {
-    const key = (exame.nome ?? 'Exame').trim();
+    const key = (exame.nome ?? '').trim();
+    if (!key) return acc;
     acc[key] = acc[key] ? [...acc[key], exame] : [exame];
     return acc;
   }, {} as Record<string, EventoMedico[]>);
@@ -83,11 +100,23 @@ function grupoRedundante(exames: EventoMedico[]) {
   let melhorGrupo: EventoMedico[] = [];
 
   Object.entries(grupos).forEach(([nome, grupo]) => {
-    if (grupo.length >= 2 && existeJanelaCurta(grupo, 30)) {
-      if (grupo.length > melhorGrupo.length) {
-        melhorGrupo = grupo;
-        melhorNome = nome;
-      }
+    const janelaMaisCurta = obterMelhorJanelaRedundante(grupo, JANELA_REDUNDANCIA_EXAME_DIAS);
+
+    if (
+      janelaMaisCurta.length >= 2 &&
+      (
+        janelaMaisCurta.length > melhorGrupo.length ||
+        (
+          janelaMaisCurta.length === melhorGrupo.length &&
+          (janelaMaisCurta[janelaMaisCurta.length - 1]?.diasAtras ?? Infinity) -
+            (janelaMaisCurta[0]?.diasAtras ?? 0) <
+            (melhorGrupo[melhorGrupo.length - 1]?.diasAtras ?? Infinity) -
+              (melhorGrupo[0]?.diasAtras ?? 0)
+        )
+      )
+    ) {
+      melhorGrupo = janelaMaisCurta;
+      melhorNome = nome;
     }
   });
 
@@ -102,7 +131,7 @@ function getCustoBase(tipo: TipoOportunidade, score: number) {
   return 900 + multiplicador * 270;
 }
 
-function getImpacto(tipo: TipoOportunidade, score: number) {
+function getPotencialOtimizacao(tipo: TipoOportunidade, score: number) {
   const base =
     tipo === 'PA evitável' ? 78 :
     tipo === 'Exame com possível redundância' ? 66 :
@@ -120,19 +149,26 @@ function getAcao(tipo: TipoOportunidade) {
 
 function montarFrequencia(tipo: TipoOportunidade, eventos: EventoMedico[]) {
   if (tipo === 'PA evitável') {
-    const pa = eventosEmJanela(contarEventos(eventos, 'Pronto atendimento'), 45);
-    return `${pa.length} ida(s) ao PA em até 45 dias`;
+    const pa = eventosEmJanela(contarEventos(eventos, 'Pronto atendimento'), JANELA_PA_EVITAVEL_DIAS);
+    return `${pa.length} ida(s) ao PA em até ${JANELA_PA_EVITAVEL_DIAS} dias`;
   }
+
   if (tipo === 'Exame com possível redundância') {
     const redundante = grupoRedundante(contarEventos(eventos, 'Exame'));
-    return `${redundante.grupo.length} ocorrência(s) de ${redundante.nome ?? 'exame repetido'} em até 30 dias`;
+    return `${redundante.grupo.length} ocorrência(s) de ${redundante.nome ?? 'exame repetido'} em até ${JANELA_REDUNDANCIA_EXAME_DIAS} dias`;
   }
+
   if (tipo === 'Consulta com baixa resolutividade') {
-    const consultas = eventosEmJanela(contarEventos(eventos, 'Consulta'), 120);
-    return `${consultas.length} consulta(s) em até 120 dias`;
+    const consultas = eventosEmJanela(contarEventos(eventos, 'Consulta'), JANELA_BAIXA_RESOLUTIVIDADE_DIAS);
+    return `${consultas.length} consulta(s) em até ${JANELA_BAIXA_RESOLUTIVIDADE_DIAS} dias`;
   }
-  const janela30 = maiorGrupoCoincidente(eventos, 30);
-  return `${janela30.length} evento(s) coincidentes em até 30 dias`;
+
+  const janela30 = maiorGrupoCoincidente(eventos, JANELA_REPETICAO_ASSISTENCIAL_DIAS);
+  return `${janela30.length} evento(s) coincidentes em até ${JANELA_REPETICAO_ASSISTENCIAL_DIAS} dias`;
+}
+
+export function obterEventosCoincidentesRepeticao(beneficiario: Beneficiario) {
+  return maiorGrupoCoincidente(beneficiario.eventos ?? [], JANELA_REPETICAO_ASSISTENCIAL_DIAS);
 }
 
 export function identificarOportunidadeEficiencia(beneficiario: Beneficiario): TipoOportunidade | null {
@@ -144,13 +180,13 @@ export function identificarOportunidadeEficiencia(beneficiario: Beneficiario): T
   const redundante = grupoRedundante(exames);
   if (redundante.grupo.length >= 2) return 'Exame com possível redundância';
 
-  const pa45 = eventosEmJanela(pa, 45);
+  const pa45 = eventosEmJanela(pa, JANELA_PA_EVITAVEL_DIAS);
   if (pa45.length >= 2) return 'PA evitável';
 
-  const consultas120 = eventosEmJanela(consultas, 120);
+  const consultas120 = eventosEmJanela(consultas, JANELA_BAIXA_RESOLUTIVIDADE_DIAS);
   if (consultas120.length >= 3) return 'Consulta com baixa resolutividade';
 
-  const janela30 = maiorGrupoCoincidente(eventos, 30);
+  const janela30 = maiorGrupoCoincidente(eventos, JANELA_REPETICAO_ASSISTENCIAL_DIAS);
   if (janela30.length >= 3) return 'Repetição assistencial';
 
   return null;
@@ -167,7 +203,7 @@ function gerarOportunidade(beneficiario: Beneficiario, tipo: TipoOportunidade): 
     tipo,
     frequencia: montarFrequencia(tipo, beneficiario.eventos ?? []),
     custo: getCustoBase(tipo, beneficiario.score),
-    impacto: getImpacto(tipo, beneficiario.score),
+    potencialOtimizacao: getPotencialOtimizacao(tipo, beneficiario.score),
     acao: getAcao(tipo),
   };
 }
@@ -190,10 +226,10 @@ export function obterResumoOportunidade(beneficiario: Beneficiario) {
   const eventos = beneficiario.eventos ?? [];
 
   if (tipo === 'PA evitável') {
-    const pa45 = eventosEmJanela(contarEventos(eventos, 'Pronto atendimento'), 45);
+    const pa45 = eventosEmJanela(contarEventos(eventos, 'Pronto atendimento'), JANELA_PA_EVITAVEL_DIAS);
     return {
       ...oportunidade,
-      justificativa: `O histórico mostra ${pa45.length} passagem(ns) por pronto atendimento dentro da janela crítica de 45 dias, sugerindo oportunidade de reforçar seguimento ambulatorial e reduzir uso evitável da rede.`,
+      justificativa: `O histórico mostra ${pa45.length} passagem(ns) por pronto atendimento dentro da janela crítica de ${JANELA_PA_EVITAVEL_DIAS} dias, sugerindo oportunidade de reforçar seguimento ambulatorial e reduzir uso evitável da rede.`,
     };
   }
 
@@ -201,19 +237,19 @@ export function obterResumoOportunidade(beneficiario: Beneficiario) {
     const redundante = grupoRedundante(contarEventos(eventos, 'Exame'));
     return {
       ...oportunidade,
-      justificativa: `Há repetição real de ${redundante.nome ?? 'um mesmo exame'} em janela clínica curta de até 30 dias, com oportunidade concreta de revisar indicação, sequência diagnóstica e reduzir duplicidade.`,
+      justificativa: `Há repetição real de ${redundante.nome ?? 'um mesmo exame'} em janela clínica curta de até ${JANELA_REDUNDANCIA_EXAME_DIAS} dias, com oportunidade concreta de revisar indicação, sequência diagnóstica e reduzir duplicidade.`,
     };
   }
 
   if (tipo === 'Consulta com baixa resolutividade') {
-    const consultas120 = eventosEmJanela(contarEventos(eventos, 'Consulta'), 120);
+    const consultas120 = eventosEmJanela(contarEventos(eventos, 'Consulta'), JANELA_BAIXA_RESOLUTIVIDADE_DIAS);
     return {
       ...oportunidade,
-      justificativa: `O histórico reúne ${consultas120.length} consulta(s) dentro de 120 dias, com manutenção de criticidade operacional e indício de baixa resolutividade assistencial.`,
+      justificativa: `O histórico reúne ${consultas120.length} consulta(s) dentro de ${JANELA_BAIXA_RESOLUTIVIDADE_DIAS} dias, com manutenção de criticidade operacional e indício de baixa resolutividade assistencial.`,
     };
   }
 
-  const janela30 = maiorGrupoCoincidente(eventos, 30);
+  const janela30 = maiorGrupoCoincidente(eventos, JANELA_REPETICAO_ASSISTENCIAL_DIAS);
   const linhas = Array.from(
     new Set(janela30.map((evento) => evento.especialidadeAssistencial).filter(Boolean))
   ) as string[];
@@ -226,6 +262,6 @@ export function obterResumoOportunidade(beneficiario: Beneficiario) {
 
   return {
     ...oportunidade,
-    justificativa: `Há ${janela30.length} evento(s) coincidentes na janela fixa de 30 dias${complementoLinhas}, com oportunidade de melhor coordenação para reduzir repetição e racionalizar a jornada de cuidado.`,
+    justificativa: `Há ${janela30.length} evento(s) coincidentes na janela fixa de ${JANELA_REPETICAO_ASSISTENCIAL_DIAS} dias${complementoLinhas}, com oportunidade de melhor coordenação para reduzir repetição e racionalizar a jornada de cuidado.`,
   };
 }

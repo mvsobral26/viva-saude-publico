@@ -9,6 +9,7 @@ import { beneficiariosMock } from './data/mock';
 import { gerarResumoScore } from './utils/healthScore';
 import { gerarEvolucaoRisco } from './utils/riskEvolution';
 import { identificarOportunidadeEficiencia, type TipoOportunidade } from './utils/efficiency';
+import { enriquecerBeneficiariosOperacionais, ordenarFilaOperacional } from './utils/operationalQueue';
 
 type Risco = 'Alto' | 'Médio' | 'Baixo';
 
@@ -45,6 +46,11 @@ export default function Home() {
     []
   );
 
+  const filaOperacional = useMemo(
+    () => ordenarFilaOperacional(enriquecerBeneficiariosOperacionais(beneficiariosMock)),
+    []
+  );
+
   const oportunidades = useMemo(() => {
     const base = {
       'PA evitável': 0,
@@ -72,6 +78,8 @@ export default function Home() {
   ).length;
 
   const riscoFuturoAlto = evolucoes.filter(({ evolucao }) => evolucao.riscoFuturo === 'Alto').length;
+  const acaoImediata = filaOperacional.filter((item) => item.filaStatus === 'Ação imediata').length;
+  const ativarSemana = filaOperacional.filter((item) => item.filaStatus === 'Ativar nesta semana').length;
 
   const custoTotal = beneficiariosMock.reduce((acc, item) => acc + item.custoPotencial30d, 0);
   const custoOportunidades =
@@ -212,20 +220,73 @@ export default function Home() {
           subtitle="Estimativa para 30 dias"
         />
         <StatCard
-          title="Sem acompanhamento"
-          value={String(semAcompanhamento)}
-          subtitle="Indício de descontinuidade"
+          title="Ação imediata"
+          value={String(acaoImediata)}
+          subtitle="Fila operacional crítica"
         />
         <StatCard
-          title="Em pré-risco"
-          value={String(preRiscoAtivo)}
-          subtitle="Pré-risco ou atenção imediata"
+          title="Ativar nesta semana"
+          value={String(ativarSemana)}
+          subtitle="Casos para coordenação ativa"
         />
         <StatCard
           title="Risco futuro alto"
           value={String(riscoFuturoAlto)}
           subtitle="Estimativa do modelo preditivo"
         />
+      </section>
+
+      <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+              Orquestração assistencial
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-900">Fila operacional priorizada</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+              O produto deixa explícita a decisão operacional da carteira: quem exige atuação imediata, quem deve ser ativado nesta semana e quem pode seguir em monitoramento preventivo.
+            </p>
+          </div>
+
+          <Link
+            href="/beneficiarios"
+            className="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            Abrir fila operacional
+          </Link>
+        </div>
+
+        <div className="mt-6 grid gap-4 xl:grid-cols-3">
+          {[
+            {
+              titulo: 'Ação imediata',
+              valor: filaOperacional.filter((item) => item.filaStatus === 'Ação imediata').length,
+              descricao: 'Casos críticos com alta urgência operacional.',
+              classe: 'border-red-200 bg-red-50',
+              destaque: 'text-red-700',
+            },
+            {
+              titulo: 'Ativar nesta semana',
+              valor: filaOperacional.filter((item) => item.filaStatus === 'Ativar nesta semana').length,
+              descricao: 'Beneficiários que exigem coordenação ativa de curto prazo.',
+              classe: 'border-amber-200 bg-amber-50',
+              destaque: 'text-amber-700',
+            },
+            {
+              titulo: 'Monitorar',
+              valor: filaOperacional.filter((item) => item.filaStatus === 'Monitorar').length,
+              descricao: 'Base preventiva com acompanhamento estruturado.',
+              classe: 'border-emerald-200 bg-emerald-50',
+              destaque: 'text-emerald-700',
+            },
+          ].map((item) => (
+            <div key={item.titulo} className={`rounded-2xl border p-5 ${item.classe}`}>
+              <p className="text-sm font-medium text-slate-600">{item.titulo}</p>
+              <p className={`mt-2 text-3xl font-bold ${item.destaque}`}>{item.valor}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{item.descricao}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="mt-6 grid gap-6 xl:grid-cols-3">

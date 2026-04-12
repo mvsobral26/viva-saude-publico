@@ -127,3 +127,10 @@ export function getEfficiencyBadgeVariant(tipo: string): BadgeVariant {
   if (valor.includes('baixa resolut')) return 'efficiency-consulta';
   return 'efficiency-repeticao';
 }
+
+
+export function getQueueBadgeVariant(status: 'Ação imediata' | 'Ativar nesta semana' | 'Monitorar'): BadgeVariant {
+  if (status === 'Ação imediata') return 'queue-immediate';
+  if (status === 'Ativar nesta semana') return 'queue-week';
+  return 'queue-monitor';
+}
