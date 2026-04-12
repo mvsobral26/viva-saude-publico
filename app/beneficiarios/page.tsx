@@ -40,6 +40,7 @@ type FiltroFluxo = 'Todos' | 'Humano prioritário' | 'IA assistida' | 'Preventiv
 type FiltroFila = 'Todos' | FilaOperacionalStatus;
 
 const ITENS_POR_PAGINA = 10;
+const STORAGE_KEY_FILTROS_BENEFICIARIOS = 'beneficiarios-filtros-v2';
 
 function formatarCPF(valor: string) {
   const numeros = valor.replace(/\D/g, '').slice(0, 11);
@@ -111,6 +112,7 @@ function BeneficiariosPageContent() {
   const [filtroPerfilClinico, setFiltroPerfilClinico] = useState<PerfilClinico | 'Todos'>('Todos');
   const [mostrarFiltrosAvancados, setMostrarFiltrosAvancados] = useState(false);
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [filtrosHidratados, setFiltrosHidratados] = useState(false);
 
   const areaInicial = searchParams.get('area') ?? '';
 
@@ -124,6 +126,79 @@ function BeneficiariosPageContent() {
 
     setAutorizado(true);
   }, [router]);
+
+  useEffect(() => {
+    try {
+      const filtrosSalvos = sessionStorage.getItem(STORAGE_KEY_FILTROS_BENEFICIARIOS);
+
+      if (!filtrosSalvos) {
+        setFiltrosHidratados(true);
+        return;
+      }
+
+      const filtros = JSON.parse(filtrosSalvos) as {
+        busca?: string;
+        filtroRisco?: FiltroRisco;
+        filtroRiscoFuturo?: FiltroRiscoFuturo;
+        filtroPreRisco?: FiltroPreRisco;
+        filtroFila?: FiltroFila;
+        filtroFluxo?: FiltroFluxo;
+        filtroArea?: string;
+        filtroStatus?: FiltroStatus;
+        filtroPerfilClinico?: PerfilClinico | 'Todos';
+        mostrarFiltrosAvancados?: boolean;
+      };
+
+      if (typeof filtros.busca === 'string') setBusca(filtros.busca);
+      if (filtros.filtroRisco) setFiltroRisco(filtros.filtroRisco);
+      if (filtros.filtroRiscoFuturo) setFiltroRiscoFuturo(filtros.filtroRiscoFuturo);
+      if (filtros.filtroPreRisco) setFiltroPreRisco(filtros.filtroPreRisco);
+      if (filtros.filtroFila) setFiltroFila(filtros.filtroFila);
+      if (filtros.filtroFluxo) setFiltroFluxo(filtros.filtroFluxo);
+      if (filtros.filtroArea) setFiltroArea(filtros.filtroArea);
+      if (filtros.filtroStatus) setFiltroStatus(filtros.filtroStatus);
+      if (filtros.filtroPerfilClinico) setFiltroPerfilClinico(filtros.filtroPerfilClinico);
+      if (typeof filtros.mostrarFiltrosAvancados === 'boolean') {
+        setMostrarFiltrosAvancados(filtros.mostrarFiltrosAvancados);
+      }
+    } catch {
+      sessionStorage.removeItem(STORAGE_KEY_FILTROS_BENEFICIARIOS);
+    } finally {
+      setFiltrosHidratados(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!filtrosHidratados) return;
+
+    sessionStorage.setItem(
+      STORAGE_KEY_FILTROS_BENEFICIARIOS,
+      JSON.stringify({
+        busca,
+        filtroRisco,
+        filtroRiscoFuturo,
+        filtroPreRisco,
+        filtroFila,
+        filtroFluxo,
+        filtroArea,
+        filtroStatus,
+        filtroPerfilClinico,
+        mostrarFiltrosAvancados,
+      })
+    );
+  }, [
+    busca,
+    filtroRisco,
+    filtroRiscoFuturo,
+    filtroPreRisco,
+    filtroFila,
+    filtroFluxo,
+    filtroArea,
+    filtroStatus,
+    filtroPerfilClinico,
+    mostrarFiltrosAvancados,
+    filtrosHidratados,
+  ]);
 
   useEffect(() => {
     if (areaInicial) {
@@ -159,6 +234,17 @@ function BeneficiariosPageContent() {
 
     return total;
   }, [filtroFluxo, filtroRiscoFuturo, filtroPreRisco, filtroStatus, filtroPerfilClinico]);
+
+  const quantidadeFiltrosAtivos = useMemo(() => {
+    let total = 0;
+
+    if (busca.trim()) total += 1;
+    if (filtroFila !== 'Todos') total += 1;
+    if (filtroRisco !== 'Todos') total += 1;
+    if (filtroArea !== 'Todos') total += 1;
+
+    return total + quantidadeFiltrosAvancadosAtivos;
+  }, [busca, filtroFila, filtroRisco, filtroArea, quantidadeFiltrosAvancadosAtivos]);
 
   const beneficiariosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -287,6 +373,23 @@ function BeneficiariosPageContent() {
     setFiltroPerfilClinico('Todos');
   }
 
+  function limparTodosFiltros() {
+    setBusca('');
+    setFiltroRisco('Todos');
+    setFiltroRiscoFuturo('Todos');
+    setFiltroPreRisco('Todos');
+    setFiltroFila('Todos');
+    setFiltroFluxo('Todos');
+    setFiltroArea('Todos');
+    setFiltroStatus('Todos');
+    setFiltroPerfilClinico('Todos');
+    setMostrarFiltrosAvancados(false);
+
+    if (areaInicial) {
+      router.push('/beneficiarios');
+    }
+  }
+
   function abrirDetalheBeneficiario(id: number) {
     router.push(`/beneficiarios/${id}`);
   }
@@ -343,8 +446,29 @@ function BeneficiariosPageContent() {
             </div>
           )}
 
-          <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/70 p-4 shadow-sm sm:p-5">
-            <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto] xl:items-end">
+          <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm sm:p-5 xl:p-6">
+            <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Filtros de priorização</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Deixe na superfície apenas os critérios críticos para a fila. Os refinamentos ficam em filtros avançados.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                  {quantidadeFiltrosAtivos} filtro(s) ativo(s)
+                </span>
+
+                {quantidadeFiltrosAtivos > 0 && (
+                  <Button type="button" variant="ghost" onClick={limparTodosFiltros}>
+                    Limpar todos
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto] xl:items-end">
               <div className="md:col-span-2 xl:col-span-1">
                 <label className="mb-2 block text-sm font-medium text-slate-700">Buscar por nome ou CPF</label>
                 <input
@@ -400,7 +524,7 @@ function BeneficiariosPageContent() {
                 </select>
               </div>
 
-              <div className="xl:min-w-[220px]">
+              <div className="xl:min-w-[240px]">
                 <Button
                   type="button"
                   variant={mostrarFiltrosAvancados || quantidadeFiltrosAvancadosAtivos > 0 ? 'primary' : 'secondary'}
@@ -426,9 +550,9 @@ function BeneficiariosPageContent() {
             {mostrarFiltrosAvancados && (
               <div
                 id="filtros-avancados-beneficiarios"
-                className="mt-4 border-t border-slate-200 pt-4"
+                className="mt-5 rounded-2xl border border-slate-200 bg-white/70 p-4"
               >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-slate-800">Filtros avançados</p>
                     <p className="mt-1 text-sm text-slate-600">
@@ -436,14 +560,16 @@ function BeneficiariosPageContent() {
                     </p>
                   </div>
 
-                  {quantidadeFiltrosAvancadosAtivos > 0 && (
-                    <Button type="button" variant="ghost" onClick={limparFiltrosAvancados}>
-                      Limpar avançados
-                    </Button>
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {quantidadeFiltrosAvancadosAtivos > 0 && (
+                      <Button type="button" variant="ghost" onClick={limparFiltrosAvancados}>
+                        Limpar avançados
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
-                <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-5">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">Fluxo</label>
                     <select
@@ -511,21 +637,17 @@ function BeneficiariosPageContent() {
                       className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                     >
                       <option value="Todos">Todos</option>
-                      <option value="Cardiometabólico">Cardiometabólico</option>
-                      <option value="Respiratório">Respiratório</option>
-                      <option value="Saúde mental">Saúde mental</option>
-                      <option value="Musculoesquelético">Musculoesquelético</option>
-                      <option value="Renal">Renal</option>
-                      <option value="Oncológico">Oncológico</option>
-                      <option value="Neurológico">Neurológico</option>
-                      <option value="Preventivo / estável">Preventivo / estável</option>
+                      <option value="Crônico">Crônico</option>
+                      <option value="Agudo recorrente">Agudo recorrente</option>
+                      <option value="Preventivo">Preventivo</option>
+                      <option value="Estável">Estável</option>
                     </select>
                   </div>
                 </div>
               </div>
             )}
           </div>
-        </section>
+
 
         <section className="grid min-w-0 gap-4 xl:grid-cols-2 2xl:grid-cols-4">
           <div className={`rounded-3xl border p-5 shadow-sm ${queueColors.immediate.border} ${queueColors.immediate.surface}`}>
