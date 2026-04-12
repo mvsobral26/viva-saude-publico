@@ -110,10 +110,10 @@ export function gerarAlertas(beneficiario: BeneficiarioLike): AlertaGerado[] {
       45
     );
 
-  if (custoPotencial30d >= 20000) {
+  if (custoPotencial30d >= 22000 && (risco === 'Alto' || teveInternacaoRecente)) {
     adicionar(alertas, 'Crítico', 'Alto custo potencial no curto prazo');
   } else if (
-    custoPotencial30d >= 15000 &&
+    custoPotencial30d >= 17000 &&
     (risco === 'Alto' || teveInternacaoRecente || teveProntoAtendimentoRecente)
   ) {
     adicionar(alertas, 'Alto', 'Alto custo potencial no curto prazo');
@@ -137,17 +137,18 @@ export function gerarAlertas(beneficiario: BeneficiarioLike): AlertaGerado[] {
 
   if (
     atividadeFisicaRegular === false &&
-    (risco !== 'Baixo' || acompanhamentoRegular === false)
+    (risco === 'Alto' || (risco === 'Médio' && acompanhamentoRegular === false))
   ) {
     adicionar(alertas, 'Baixo', 'Sedentarismo declarado');
   }
 
-  if (ultimoEventoDias > 180) {
-    adicionar(alertas, 'Alto', 'Sem consulta há mais de 180 dias');
+  if (ultimoEventoDias > 210 && (acompanhamentoRegular === false || risco !== 'Baixo')) {
+    adicionar(alertas, 'Alto', 'Sem consulta há mais de 210 dias');
   }
 
   if (
     polifarmacia &&
+    quantidadeMedicamentos >= 5 &&
     (acompanhamentoRegular === false || risco === 'Alto' || teveInternacaoRecente)
   ) {
     adicionar(alertas, 'Médio', 'Uso contínuo de múltiplos medicamentos');
@@ -164,11 +165,11 @@ export function gerarAlertas(beneficiario: BeneficiarioLike): AlertaGerado[] {
     adicionar(alertas, 'Médio', 'Obesidade / IMC elevado');
   }
 
-  if (cardiopatia) {
+  if (cardiopatia && (risco !== 'Baixo' || acompanhamentoRegular === false || teveInternacaoRecente)) {
     adicionar(alertas, 'Alto', 'Condição cardiovascular crônica');
   }
 
-  if (doencaRenal) {
+  if (doencaRenal && (risco !== 'Baixo' || acompanhamentoRegular === false)) {
     adicionar(alertas, 'Alto', 'Doença renal com necessidade de monitoramento');
   }
 
@@ -181,22 +182,36 @@ export function gerarAlertas(beneficiario: BeneficiarioLike): AlertaGerado[] {
   }
 
   if (insulinoterapia || anticoagulante || imunossupressor) {
-    adicionar(alertas, 'Médio', 'Tratamento contínuo de alta vigilância');
+    adicionar(alertas, risco === 'Alto' ? 'Médio' : 'Baixo', 'Tratamento contínuo de alta vigilância');
   }
 
-  if (saudeMental && estresseElevado) {
+  if (saudeMental && estresseElevado && (acompanhamentoRegular === false || risco !== 'Baixo')) {
     adicionar(alertas, 'Médio', 'Saúde mental com fator agravante');
   }
 
-  if (dorCronica || limitacaoMobilidade) {
+  if ((dorCronica || limitacaoMobilidade) && (risco !== 'Baixo' || acompanhamentoRegular === false)) {
     adicionar(alertas, 'Médio', 'Impacto funcional relevante');
   }
 
-  if (acompanhamentoMedicoAtual === false && score >= 60) {
+  if (acompanhamentoMedicoAtual === false && score >= 68) {
     adicionar(alertas, 'Alto', 'Alto risco sem seguimento médico atual');
   }
 
-  if (alertas.length === 0 && (risco === 'Baixo' || score <= 45)) {
+  const perfilEstavel =
+    risco === 'Baixo' &&
+    score <= 36 &&
+    ultimoEventoDias <= 120 &&
+    !teveInternacaoRecente &&
+    !teveProntoAtendimentoRecente &&
+    !diabetes &&
+    !hipertensao &&
+    !cardiopatia &&
+    !doencaRenal &&
+    !historicoOncologico &&
+    !saudeMental &&
+    quantidadeMedicamentos <= 2;
+
+  if (alertas.length === 0 && perfilEstavel) {
     adicionar(alertas, 'Baixo', 'Perfil estável, manter prevenção');
   }
 
