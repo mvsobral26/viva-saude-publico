@@ -109,6 +109,7 @@ function BeneficiariosPageContent() {
   const [filtroArea, setFiltroArea] = useState('Todos');
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('Todos');
   const [filtroPerfilClinico, setFiltroPerfilClinico] = useState<PerfilClinico | 'Todos'>('Todos');
+  const [mostrarFiltrosAvancados, setMostrarFiltrosAvancados] = useState(false);
   const [paginaAtual, setPaginaAtual] = useState(1);
 
   const areaInicial = searchParams.get('area') ?? '';
@@ -146,6 +147,18 @@ function BeneficiariosPageContent() {
       a.localeCompare(b, 'pt-BR')
     ) as FiltroStatus[];
   }, [beneficiariosEnriquecidos]);
+
+  const quantidadeFiltrosAvancadosAtivos = useMemo(() => {
+    let total = 0;
+
+    if (filtroFluxo !== 'Todos') total += 1;
+    if (filtroRiscoFuturo !== 'Todos') total += 1;
+    if (filtroPreRisco !== 'Todos') total += 1;
+    if (filtroStatus !== 'Todos') total += 1;
+    if (filtroPerfilClinico !== 'Todos') total += 1;
+
+    return total;
+  }, [filtroFluxo, filtroRiscoFuturo, filtroPreRisco, filtroStatus, filtroPerfilClinico]);
 
   const beneficiariosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -266,6 +279,14 @@ function BeneficiariosPageContent() {
     router.push('/beneficiarios');
   }
 
+  function limparFiltrosAvancados() {
+    setFiltroFluxo('Todos');
+    setFiltroRiscoFuturo('Todos');
+    setFiltroPreRisco('Todos');
+    setFiltroStatus('Todos');
+    setFiltroPerfilClinico('Todos');
+  }
+
   function abrirDetalheBeneficiario(id: number) {
     router.push(`/beneficiarios/${id}`);
   }
@@ -322,139 +343,187 @@ function BeneficiariosPageContent() {
             </div>
           )}
 
-          <div className="mt-6 grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
-            <div className="md:col-span-2 2xl:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Buscar por nome ou CPF</label>
-              <input
-                type="text"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Digite nome ou CPF"
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              />
+          <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/70 p-4 shadow-sm sm:p-5">
+            <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto] xl:items-end">
+              <div className="md:col-span-2 xl:col-span-1">
+                <label className="mb-2 block text-sm font-medium text-slate-700">Buscar por nome ou CPF</label>
+                <input
+                  type="text"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Digite nome ou CPF"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Fila</label>
+                <select
+                  value={filtroFila}
+                  onChange={(e) => setFiltroFila(e.target.value as FiltroFila)}
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                >
+                  <option value="Todos">Todos</option>
+                  <option value="Ação imediata">Ação imediata</option>
+                  <option value="Ativar nesta semana">Ativar nesta semana</option>
+                  <option value="Monitorar">Monitorar</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Risco atual</label>
+                <select
+                  value={filtroRisco}
+                  onChange={(e) => setFiltroRisco(e.target.value as FiltroRisco)}
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                >
+                  <option value="Todos">Todos</option>
+                  <option value="Alto">Alto</option>
+                  <option value="Médio">Médio</option>
+                  <option value="Baixo">Baixo</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Área</label>
+                <select
+                  value={filtroArea}
+                  onChange={(e) => setFiltroArea(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                >
+                  <option value="Todos">Todos</option>
+                  {areasDisponiveis.map((area) => (
+                    <option key={area} value={area}>
+                      {area}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="xl:min-w-[220px]">
+                <Button
+                  type="button"
+                  variant={mostrarFiltrosAvancados || quantidadeFiltrosAvancadosAtivos > 0 ? 'primary' : 'secondary'}
+                  size="lg"
+                  className="w-full justify-between"
+                  onClick={() => setMostrarFiltrosAvancados((estadoAtual) => !estadoAtual)}
+                  aria-expanded={mostrarFiltrosAvancados}
+                  aria-controls="filtros-avancados-beneficiarios"
+                >
+                  <span>Filtros avançados</span>
+                  <span className="ml-3 inline-flex items-center gap-2">
+                    {quantidadeFiltrosAvancadosAtivos > 0 && (
+                      <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+                        {quantidadeFiltrosAvancadosAtivos}
+                      </span>
+                    )}
+                    <span>{mostrarFiltrosAvancados ? '−' : '+'}</span>
+                  </span>
+                </Button>
+              </div>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Fila</label>
-              <select
-                value={filtroFila}
-                onChange={(e) => setFiltroFila(e.target.value as FiltroFila)}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            {mostrarFiltrosAvancados && (
+              <div
+                id="filtros-avancados-beneficiarios"
+                className="mt-4 border-t border-slate-200 pt-4"
               >
-                <option value="Todos">Todos</option>
-                <option value="Ação imediata">Ação imediata</option>
-                <option value="Ativar nesta semana">Ativar nesta semana</option>
-                <option value="Monitorar">Monitorar</option>
-              </select>
-            </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Filtros avançados</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Use apenas quando precisar refinar a carteira além da fila principal.
+                    </p>
+                  </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Fluxo</label>
-              <select
-                value={filtroFluxo}
-                onChange={(e) => setFiltroFluxo(e.target.value as FiltroFluxo)}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              >
-                <option value="Todos">Todos</option>
-                <option value="Humano prioritário">Humano prioritário</option>
-                <option value="IA assistida">IA assistida</option>
-                <option value="Preventivo automatizado">Preventivo automatizado</option>
-              </select>
-            </div>
+                  {quantidadeFiltrosAvancadosAtivos > 0 && (
+                    <Button type="button" variant="ghost" onClick={limparFiltrosAvancados}>
+                      Limpar avançados
+                    </Button>
+                  )}
+                </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Risco futuro</label>
-              <select
-                value={filtroRiscoFuturo}
-                onChange={(e) => setFiltroRiscoFuturo(e.target.value as FiltroRiscoFuturo)}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              >
-                <option value="Todos">Todos</option>
-                <option value="Alto">Alto</option>
-                <option value="Médio">Médio</option>
-                <option value="Baixo">Baixo</option>
-              </select>
-            </div>
+                <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Fluxo</label>
+                    <select
+                      value={filtroFluxo}
+                      onChange={(e) => setFiltroFluxo(e.target.value as FiltroFluxo)}
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                    >
+                      <option value="Todos">Todos</option>
+                      <option value="Humano prioritário">Humano prioritário</option>
+                      <option value="IA assistida">IA assistida</option>
+                      <option value="Preventivo automatizado">Preventivo automatizado</option>
+                    </select>
+                  </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Pré-risco</label>
-              <select
-                value={filtroPreRisco}
-                onChange={(e) => setFiltroPreRisco(e.target.value as FiltroPreRisco)}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              >
-                <option value="Todos">Todos</option>
-                <option value="Atenção imediata">Atenção imediata</option>
-                <option value="Pré-risco">Pré-risco</option>
-                <option value="Monitorar">Monitorar</option>
-                <option value="Estável">Estável</option>
-              </select>
-            </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Risco futuro</label>
+                    <select
+                      value={filtroRiscoFuturo}
+                      onChange={(e) => setFiltroRiscoFuturo(e.target.value as FiltroRiscoFuturo)}
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                    >
+                      <option value="Todos">Todos</option>
+                      <option value="Alto">Alto</option>
+                      <option value="Médio">Médio</option>
+                      <option value="Baixo">Baixo</option>
+                    </select>
+                  </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Risco atual</label>
-              <select
-                value={filtroRisco}
-                onChange={(e) => setFiltroRisco(e.target.value as FiltroRisco)}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              >
-                <option value="Todos">Todos</option>
-                <option value="Alto">Alto</option>
-                <option value="Médio">Médio</option>
-                <option value="Baixo">Baixo</option>
-              </select>
-            </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Pré-risco</label>
+                    <select
+                      value={filtroPreRisco}
+                      onChange={(e) => setFiltroPreRisco(e.target.value as FiltroPreRisco)}
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                    >
+                      <option value="Todos">Todos</option>
+                      <option value="Atenção imediata">Atenção imediata</option>
+                      <option value="Pré-risco">Pré-risco</option>
+                      <option value="Monitorar">Monitorar</option>
+                      <option value="Estável">Estável</option>
+                    </select>
+                  </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Área</label>
-              <select
-                value={filtroArea}
-                onChange={(e) => setFiltroArea(e.target.value)}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              >
-                <option value="Todos">Todos</option>
-                {areasDisponiveis.map((area) => (
-                  <option key={area} value={area}>
-                    {area}
-                  </option>
-                ))}
-              </select>
-            </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Status</label>
+                    <select
+                      value={filtroStatus}
+                      onChange={(e) => setFiltroStatus(e.target.value as FiltroStatus)}
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                    >
+                      <option value="Todos">Todos</option>
+                      {statusDisponiveis.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Status</label>
-              <select
-                value={filtroStatus}
-                onChange={(e) => setFiltroStatus(e.target.value as FiltroStatus)}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              >
-                <option value="Todos">Todos</option>
-                {statusDisponiveis.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Perfil clínico</label>
-              <select
-                value={filtroPerfilClinico}
-                onChange={(e) => setFiltroPerfilClinico(e.target.value as PerfilClinico | 'Todos')}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
-              >
-                <option value="Todos">Todos</option>
-                <option value="Cardiometabólico">Cardiometabólico</option>
-                <option value="Respiratório">Respiratório</option>
-                <option value="Saúde mental">Saúde mental</option>
-                <option value="Musculoesquelético">Musculoesquelético</option>
-                <option value="Renal">Renal</option>
-                <option value="Oncológico">Oncológico</option>
-                <option value="Neurológico">Neurológico</option>
-                <option value="Preventivo / estável">Preventivo / estável</option>
-              </select>
-            </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Perfil clínico</label>
+                    <select
+                      value={filtroPerfilClinico}
+                      onChange={(e) => setFiltroPerfilClinico(e.target.value as PerfilClinico | 'Todos')}
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                    >
+                      <option value="Todos">Todos</option>
+                      <option value="Cardiometabólico">Cardiometabólico</option>
+                      <option value="Respiratório">Respiratório</option>
+                      <option value="Saúde mental">Saúde mental</option>
+                      <option value="Musculoesquelético">Musculoesquelético</option>
+                      <option value="Renal">Renal</option>
+                      <option value="Oncológico">Oncológico</option>
+                      <option value="Neurológico">Neurológico</option>
+                      <option value="Preventivo / estável">Preventivo / estável</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
