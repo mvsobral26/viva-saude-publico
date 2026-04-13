@@ -244,7 +244,7 @@ export default function Home() {
             </p>
             <h2 className="mt-2 text-2xl font-bold text-slate-900">Fila operacional priorizada</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              O produto deixa explícita a decisão operacional da carteira: quem exige atuação imediata, quem deve ser ativado nesta semana e quem pode seguir em monitoramento preventivo.
+              Quem exige atuação imediata, quem deve ser ativado nesta semana e quem pode seguir em monitoramento preventivo.
             </p>
           </div>
 
