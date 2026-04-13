@@ -451,7 +451,7 @@ function BeneficiariosPageContent() {
               <div>
                 <p className="text-sm font-semibold text-slate-900">Filtros de priorização</p>
                 <p className="mt-1 text-sm text-slate-600">
-                  Deixe na superfície apenas os critérios críticos para a fila. Os refinamentos ficam em filtros avançados.
+                  Os refinamentos ficam em filtros avançados.
                 </p>
               </div>
 
