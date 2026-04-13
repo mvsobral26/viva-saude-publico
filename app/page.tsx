@@ -305,7 +305,7 @@ export default function Home() {
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
             O risco futuro é estimado a partir do histórico assistencial, padrão de uso, alertas e sinais de
-            descontinuidade de cuidado, tornando explícita a lógica preditiva do MVP.
+            descontinuidade de cuidado, tornando explícita a lógica preditiva da IA.
           </p>
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
