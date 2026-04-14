@@ -215,11 +215,15 @@ export function buildExpandedDeclaration(beneficiario: Beneficiario): Declaracao
     `Altura estimada: ${alturaM.toFixed(2)} m`,
   ].filter(Boolean) as string[];
 
-  const historicoFamiliar = [
-    beneficiario.id % 5 === 0 ? 'Histórico familiar cardiovascular' : null,
-    beneficiario.id % 7 === 0 ? 'Histórico familiar metabólico' : null,
-    beneficiario.id % 13 === 0 ? 'Histórico familiar oncológico' : null,
-  ].filter(Boolean) as string[];
+  const historicoFamiliar = (d.historicoFamiliar?.condicoes ?? []).map((condicao) => {
+    if (condicao === 'Doença cardiovascular') return 'Histórico familiar cardiovascular';
+    if (condicao === 'Câncer') return 'Histórico familiar oncológico';
+    if (condicao === 'Doença renal crônica') return 'Histórico familiar de doença renal crônica';
+    if (condicao === 'Doença respiratória crônica') return 'Histórico familiar respiratório';
+    if (condicao === 'Doença neurológica degenerativa') return 'Histórico familiar neurológico degenerativo';
+    if (condicao === 'Hipertensão') return 'Histórico familiar de hipertensão';
+    return 'Histórico familiar de diabetes';
+  });
 
   return {
     doencasPreexistentes,

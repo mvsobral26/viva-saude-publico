@@ -244,7 +244,7 @@ export default function Home() {
             </p>
             <h2 className="mt-2 text-2xl font-bold text-slate-900">Fila operacional priorizada</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              O produto deixa explícita a decisão operacional da carteira: quem exige atuação imediata, quem deve ser ativado nesta semana e quem pode seguir em monitoramento preventivo.
+              Quem exige atuação imediata, quem deve ser ativado nesta semana e quem pode seguir em monitoramento preventivo.
             </p>
           </div>
 
@@ -305,7 +305,7 @@ export default function Home() {
 
           <p className="mt-3 text-sm leading-6 text-slate-600">
             O risco futuro é estimado a partir do histórico assistencial, padrão de uso, alertas e sinais de
-            descontinuidade de cuidado, tornando explícita a lógica preditiva do MVP.
+            descontinuidade de cuidado, tornando explícita a lógica preditiva da IA.
           </p>
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2">

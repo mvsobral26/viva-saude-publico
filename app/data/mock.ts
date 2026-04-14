@@ -1,4 +1,12 @@
-import type { Beneficiario, DeclaracaoSaude, EspecialidadeAssistencial, EventoMedico, Medicamento, Usuario } from '../types';
+import type {
+  Beneficiario,
+  DeclaracaoSaude,
+  EspecialidadeAssistencial,
+  EventoMedico,
+  HistoricoFamiliarCondicao,
+  Medicamento,
+  Usuario,
+} from '../types';
 
 export const usuariosMock: Usuario[] = [
   {
@@ -155,6 +163,73 @@ function buildNome(id: number) {
   return `${pick(NOMES, id)} ${pick(SOBRENOMES_1, id * 3)} ${pick(SOBRENOMES_2, id * 7)}`;
 }
 
+
+function pushHistoricoFamiliar(
+  condicoes: HistoricoFamiliarCondicao[],
+  condicao: HistoricoFamiliarCondicao | null,
+  incluir: boolean
+) {
+  if (!condicao || !incluir || condicoes.includes(condicao)) return;
+  condicoes.push(condicao);
+}
+
+function buildHistoricoFamiliar(id: number, declaracao: Omit<DeclaracaoSaude, 'historicoFamiliar'>) {
+  const doencas = declaracao.doencasPreexistentes;
+  const condicoes: HistoricoFamiliarCondicao[] = [];
+
+  pushHistoricoFamiliar(
+    condicoes,
+    'Diabetes',
+    !!(doencas?.diabetes && maybe(id * 257, 0.48)) || !!(doencas?.obesidade && maybe(id * 263, 0.18))
+  );
+
+  pushHistoricoFamiliar(
+    condicoes,
+    'Hipertensão',
+    !!(doencas?.hipertensao && maybe(id * 269, 0.44)) || !!(doencas?.obesidade && maybe(id * 271, 0.16))
+  );
+
+  pushHistoricoFamiliar(
+    condicoes,
+    'Doença cardiovascular',
+    !!(doencas?.cardiopatia && maybe(id * 277, 0.62)) ||
+      !!(doencas?.insuficienciaCardiaca && maybe(id * 281, 0.58)) ||
+      !!(doencas?.arritmia && maybe(id * 283, 0.36)) ||
+      !!(doencas?.hipertensao && maybe(id * 293, 0.18))
+  );
+
+  pushHistoricoFamiliar(
+    condicoes,
+    'Câncer',
+    !!(doencas?.historicoOncologico && maybe(id * 307, 0.57)) ||
+      !!(doencas?.tumorBenigno && maybe(id * 311, 0.22))
+  );
+
+  pushHistoricoFamiliar(
+    condicoes,
+    'Doença renal crônica',
+    !!(doencas?.doencaRenalCronica && maybe(id * 313, 0.54))
+  );
+
+  pushHistoricoFamiliar(
+    condicoes,
+    'Doença respiratória crônica',
+    !!((doencas?.asma || doencas?.dpoc || doencas?.bronquite) && maybe(id * 317, 0.34))
+  );
+
+  pushHistoricoFamiliar(
+    condicoes,
+    'Doença neurológica degenerativa',
+    !!((doencas?.parkinson || doencas?.alzheimer || doencas?.doencaNeurologica) && maybe(id * 331, 0.28))
+  );
+
+  if (condicoes.length === 0 && maybe(id * 337, 0.08)) {
+    pushHistoricoFamiliar(condicoes, 'Hipertensão', true);
+  }
+
+  return { condicoes };
+}
+
 function buildDeclaracao(id: number): DeclaracaoSaude {
   const diabetes = maybe(id * 11, 0.22);
   const hipertensao = maybe(id * 13, 0.28);
@@ -168,7 +243,7 @@ function buildDeclaracao(id: number): DeclaracaoSaude {
   const autoavaliacaoSaude: 'Boa' | 'Regular' | 'Ruim' =
     maybe(id * 41, 0.12) ? 'Ruim' : maybe(id * 43, 0.28) ? 'Regular' : 'Boa';
 
-  return {
+  const declaracaoBase: Omit<DeclaracaoSaude, 'historicoFamiliar'> = {
     hipertensao,
     diabetes,
     tabagismo,
@@ -238,6 +313,11 @@ function buildDeclaracao(id: number): DeclaracaoSaude {
       fadigaRecorrente: maybe(id * 251, 0.16),
       autoavaliacaoSaude,
     },
+  };
+
+  return {
+    ...declaracaoBase,
+    historicoFamiliar: buildHistoricoFamiliar(id, declaracaoBase),
   };
 }
 
