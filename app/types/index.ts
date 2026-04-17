@@ -84,20 +84,6 @@ export type PercepcaoSaude = {
   autoavaliacaoSaude?: 'Boa' | 'Regular' | 'Ruim';
 };
 
-
-export type HistoricoFamiliarCondicao =
-  | 'Diabetes'
-  | 'Hipertensão'
-  | 'Doença cardiovascular'
-  | 'Câncer'
-  | 'Doença renal crônica'
-  | 'Doença respiratória crônica'
-  | 'Doença neurológica degenerativa';
-
-export type HistoricoFamiliar = {
-  condicoes: HistoricoFamiliarCondicao[];
-};
-
 export type DeclaracaoSaude = {
   hipertensao: boolean;
   diabetes: boolean;
@@ -112,7 +98,6 @@ export type DeclaracaoSaude = {
   tratamentosContinuos?: TratamentosContinuos;
   internacoesExames?: InternacoesExames;
   percepcaoSaude?: PercepcaoSaude;
-  historicoFamiliar?: HistoricoFamiliar;
 };
 
 export type Medicamento = {

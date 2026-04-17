@@ -11,12 +11,12 @@ type AppShellProps = {
 
 export default function AppShell({ children, active = 'dashboard' }: AppShellProps) {
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-slate-100">
-      <div className="flex min-h-screen w-full min-w-0">
+    <div className="min-h-screen bg-slate-100">
+      <div className="flex min-h-screen">
         <Sidebar active={active} />
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden">
+        <div className="flex min-h-screen flex-1 flex-col">
           <Topbar />
-          <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 xl:p-8">{children}</main>
+          <main className="flex-1 p-8">{children}</main>
         </div>
       </div>
     </div>

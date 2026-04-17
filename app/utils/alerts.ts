@@ -110,21 +110,42 @@ export function gerarAlertas(beneficiario: BeneficiarioLike): AlertaGerado[] {
       45
     );
 
-  if (custoPotencial30d >= 22000 && (risco === 'Alto' || teveInternacaoRecente)) {
+  const temCondicaoCronicaRelevante =
+    diabetes || hipertensao || cardiopatia || doencaRenal || dpoc || historicoOncologico;
+  const temDescontinuidadeAssistencial =
+    acompanhamentoRegular === false || acompanhamentoMedicoAtual === false || ultimoEventoDias > 180;
+  const fragilidadeClinicaAlta =
+    risco === 'Alto' ||
+    score >= 75 ||
+    teveInternacaoRecente ||
+    (teveProntoAtendimentoRecente && temCondicaoCronicaRelevante);
+  const vigilanciaElevada = insulinoterapia || anticoagulante || imunossupressor;
+
+  if (custoPotencial30d >= 20000 && fragilidadeClinicaAlta) {
     adicionar(alertas, 'Crítico', 'Alto custo potencial no curto prazo');
   } else if (
-    custoPotencial30d >= 17000 &&
+    custoPotencial30d >= 16000 &&
     (risco === 'Alto' || teveInternacaoRecente || teveProntoAtendimentoRecente)
   ) {
     adicionar(alertas, 'Alto', 'Alto custo potencial no curto prazo');
+  } else if (custoPotencial30d >= 12000 && (temCondicaoCronicaRelevante || risco !== 'Baixo')) {
+    adicionar(alertas, 'Médio', 'Custo potencial elevado no curto prazo');
   }
 
   if (diabetes && acompanhamentoRegular === false) {
-    adicionar(alertas, 'Crítico', 'Diabetes sem acompanhamento regular');
+    adicionar(
+      alertas,
+      insulinoterapia || fragilidadeClinicaAlta ? 'Crítico' : 'Alto',
+      'Diabetes sem acompanhamento regular'
+    );
   }
 
-  if (hipertensao && acompanhamentoRegular === false && risco !== 'Baixo') {
-    adicionar(alertas, 'Alto', 'Hipertensão sem acompanhamento regular');
+  if (hipertensao && acompanhamentoRegular === false) {
+    adicionar(
+      alertas,
+      cardiopatia || risco === 'Alto' || teveProntoAtendimentoRecente ? 'Alto' : 'Médio',
+      'Hipertensão sem acompanhamento regular'
+    );
   }
 
   if (teveInternacaoRecente && polifarmacia) {
@@ -132,30 +153,41 @@ export function gerarAlertas(beneficiario: BeneficiarioLike): AlertaGerado[] {
   }
 
   if (acompanhamentoRegular === false && ultimoEventoDias > 120) {
-    adicionar(alertas, 'Alto', 'Possível abandono de acompanhamento');
+    adicionar(
+      alertas,
+      risco === 'Alto' || teveInternacaoRecente || cardiopatia || doencaRenal ? 'Alto' : 'Médio',
+      'Possível abandono de acompanhamento'
+    );
   }
 
   if (
     atividadeFisicaRegular === false &&
-    (risco === 'Alto' || (risco === 'Médio' && acompanhamentoRegular === false))
+    (risco !== 'Baixo' || acompanhamentoRegular === false)
   ) {
     adicionar(alertas, 'Baixo', 'Sedentarismo declarado');
   }
 
-  if (ultimoEventoDias > 210 && (acompanhamentoRegular === false || risco !== 'Baixo')) {
-    adicionar(alertas, 'Alto', 'Sem consulta há mais de 210 dias');
+  if (ultimoEventoDias > 180) {
+    adicionar(
+      alertas,
+      fragilidadeClinicaAlta || temCondicaoCronicaRelevante ? 'Alto' : 'Médio',
+      'Sem consulta há mais de 180 dias'
+    );
   }
 
   if (
     polifarmacia &&
-    quantidadeMedicamentos >= 5 &&
     (acompanhamentoRegular === false || risco === 'Alto' || teveInternacaoRecente)
   ) {
     adicionar(alertas, 'Médio', 'Uso contínuo de múltiplos medicamentos');
   }
 
   if (teveProntoAtendimentoRecente) {
-    adicionar(alertas, risco === 'Alto' ? 'Crítico' : 'Alto', 'Uso recente de pronto atendimento');
+    adicionar(
+      alertas,
+      risco === 'Alto' || cardiopatia || doencaRenal || teveInternacaoRecente ? 'Alto' : 'Médio',
+      'Uso recente de pronto atendimento'
+    );
   }
 
   if (
@@ -165,53 +197,55 @@ export function gerarAlertas(beneficiario: BeneficiarioLike): AlertaGerado[] {
     adicionar(alertas, 'Médio', 'Obesidade / IMC elevado');
   }
 
-  if (cardiopatia && (risco !== 'Baixo' || acompanhamentoRegular === false || teveInternacaoRecente)) {
-    adicionar(alertas, 'Alto', 'Condição cardiovascular crônica');
+  if (cardiopatia) {
+    adicionar(
+      alertas,
+      temDescontinuidadeAssistencial || teveProntoAtendimentoRecente || score >= 75 ? 'Alto' : 'Médio',
+      'Condição cardiovascular crônica'
+    );
   }
 
-  if (doencaRenal && (risco !== 'Baixo' || acompanhamentoRegular === false)) {
-    adicionar(alertas, 'Alto', 'Doença renal com necessidade de monitoramento');
+  if (doencaRenal) {
+    adicionar(
+      alertas,
+      temDescontinuidadeAssistencial || fragilidadeClinicaAlta ? 'Alto' : 'Médio',
+      'Doença renal com necessidade de monitoramento'
+    );
   }
 
   if (dpoc && fumante) {
-    adicionar(alertas, 'Alto', 'Doença respiratória associada a fator de risco');
+    adicionar(
+      alertas,
+      teveProntoAtendimentoRecente || teveInternacaoRecente || risco === 'Alto' ? 'Alto' : 'Médio',
+      'Doença respiratória associada a fator de risco'
+    );
   }
 
   if (historicoOncologico && (tratamentoOncologicoAtual || exameComplexoRecente)) {
     adicionar(alertas, 'Crítico', 'Oncologia em acompanhamento ativo');
   }
 
-  if (insulinoterapia || anticoagulante || imunossupressor) {
-    adicionar(alertas, risco === 'Alto' ? 'Médio' : 'Baixo', 'Tratamento contínuo de alta vigilância');
+  if (vigilanciaElevada) {
+    adicionar(alertas, 'Médio', 'Tratamento contínuo de alta vigilância');
   }
 
-  if (saudeMental && estresseElevado && (acompanhamentoRegular === false || risco !== 'Baixo')) {
+  if (saudeMental && estresseElevado) {
     adicionar(alertas, 'Médio', 'Saúde mental com fator agravante');
   }
 
-  if ((dorCronica || limitacaoMobilidade) && (risco !== 'Baixo' || acompanhamentoRegular === false)) {
+  if (dorCronica || limitacaoMobilidade) {
     adicionar(alertas, 'Médio', 'Impacto funcional relevante');
   }
 
-  if (acompanhamentoMedicoAtual === false && score >= 68) {
-    adicionar(alertas, 'Alto', 'Alto risco sem seguimento médico atual');
+  if (acompanhamentoMedicoAtual === false && score >= 60) {
+    adicionar(
+      alertas,
+      score >= 75 || risco === 'Alto' || temCondicaoCronicaRelevante ? 'Alto' : 'Médio',
+      'Alto risco sem seguimento médico atual'
+    );
   }
 
-  const perfilEstavel =
-    risco === 'Baixo' &&
-    score <= 36 &&
-    ultimoEventoDias <= 120 &&
-    !teveInternacaoRecente &&
-    !teveProntoAtendimentoRecente &&
-    !diabetes &&
-    !hipertensao &&
-    !cardiopatia &&
-    !doencaRenal &&
-    !historicoOncologico &&
-    !saudeMental &&
-    quantidadeMedicamentos <= 2;
-
-  if (alertas.length === 0 && perfilEstavel) {
+  if (alertas.length === 0 && (risco === 'Baixo' || score <= 45)) {
     adicionar(alertas, 'Baixo', 'Perfil estável, manter prevenção');
   }
 

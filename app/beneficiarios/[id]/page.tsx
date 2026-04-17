@@ -6,15 +6,12 @@ import AppShell from '../../components/AppShell';
 import Badge, {
   getClinicalTagVariant,
   getEventBadgeVariant,
-  getFlowBadgeVariant,
-  getQueueBadgeVariant,
   getRiskBadgeVariant,
   getStatusBadgeVariant,
 } from '../../components/Badge';
 import { beneficiariosMock } from '../../data/mock';
 import { buildExpandedDeclaration, buildUnifiedTimeline, getStatusEvento } from '../../utils/beneficiaryInsights';
 import { gerarEvolucaoRisco } from '../../utils/riskEvolution';
-import { enriquecerBeneficiariosOperacionais } from '../../utils/operationalQueue';
 
 function groupDeclarationItems(title: string, items: string[]) {
   return { title, items };
@@ -36,10 +33,6 @@ export default function BeneficiarioDetalhePage() {
   const timeline = useMemo(() => (beneficiario ? buildUnifiedTimeline(beneficiario) : []), [beneficiario]);
   const declaracao = useMemo(() => (beneficiario ? buildExpandedDeclaration(beneficiario) : null), [beneficiario]);
   const evolucao = useMemo(() => (beneficiario ? gerarEvolucaoRisco(beneficiario) : null), [beneficiario]);
-  const beneficiarioOperacional = useMemo(() => {
-    if (!beneficiario) return null;
-    return enriquecerBeneficiariosOperacionais([beneficiario])[0] ?? null;
-  }, [beneficiario]);
 
   const groupedDeclaration = useMemo(
     () =>
@@ -56,7 +49,7 @@ export default function BeneficiarioDetalhePage() {
     [declaracao]
   );
 
-  if (!beneficiario || !evolucao || !beneficiarioOperacional) {
+  if (!beneficiario || !evolucao) {
     return (
       <AppShell active="beneficiarios">
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -108,8 +101,6 @@ export default function BeneficiarioDetalhePage() {
                 <Badge variant={getRiskBadgeVariant(beneficiario.risco)}>{beneficiario.risco}</Badge>
                 <Badge variant={getPreRiskBadgeVariant(evolucao.nivelPreRisco)}>{evolucao.nivelPreRisco}</Badge>
                 <Badge variant={getRiskBadgeVariant(evolucao.riscoFuturo)}>Risco futuro {evolucao.riscoFuturo}</Badge>
-                <Badge variant={getQueueBadgeVariant(beneficiarioOperacional.filaStatus)}>{beneficiarioOperacional.filaStatus}</Badge>
-                <Badge variant={getFlowBadgeVariant(beneficiarioOperacional.fluxo)}>{beneficiarioOperacional.fluxo}</Badge>
                 <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
                   Health Score {beneficiario.score}
                 </span>

@@ -10,8 +10,8 @@ import { gerarResumoScore } from './utils/healthScore';
 import { gerarEvolucaoRisco } from './utils/riskEvolution';
 import { identificarOportunidadeEficiencia, type TipoOportunidade } from './utils/efficiency';
 import { enriquecerBeneficiariosOperacionais, ordenarFilaOperacional } from './utils/operationalQueue';
-
-type Risco = 'Alto' | 'Médio' | 'Baixo';
+import { calcularResumoSinistralidade } from './utils/sinistralidade';
+import type { Risco } from './types';
 
 function getBarColor(label: Risco) {
   if (label === 'Alto') return 'bg-red-500';
@@ -24,6 +24,13 @@ function formatCurrency(value: number) {
     style: 'currency',
     currency: 'BRL',
     maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatPercent(value: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'percent',
+    maximumFractionDigits: 1,
   }).format(value);
 }
 
@@ -41,8 +48,13 @@ export default function Home() {
   }, [router]);
 
   const total = beneficiariosMock.length;
+
   const evolucoes = useMemo(
-    () => beneficiariosMock.map((beneficiario) => ({ beneficiario, evolucao: gerarEvolucaoRisco(beneficiario) })),
+    () =>
+      beneficiariosMock.map((beneficiario) => ({
+        beneficiario,
+        evolucao: gerarEvolucaoRisco(beneficiario),
+      })),
     []
   );
 
@@ -73,8 +85,9 @@ export default function Home() {
   const medio = beneficiariosMock.filter((b) => b.risco === 'Médio').length;
   const baixo = beneficiariosMock.filter((b) => b.risco === 'Baixo').length;
 
-  const preRiscoAtivo = evolucoes.filter(({ evolucao }) =>
-    evolucao.nivelPreRisco === 'Pré-risco' || evolucao.nivelPreRisco === 'Atenção imediata'
+  const preRiscoAtivo = evolucoes.filter(
+    ({ evolucao }) =>
+      evolucao.nivelPreRisco === 'Pré-risco' || evolucao.nivelPreRisco === 'Atenção imediata'
   ).length;
 
   const riscoFuturoAlto = evolucoes.filter(({ evolucao }) => evolucao.riscoFuturo === 'Alto').length;
@@ -82,11 +95,22 @@ export default function Home() {
   const ativarSemana = filaOperacional.filter((item) => item.filaStatus === 'Ativar nesta semana').length;
 
   const custoTotal = beneficiariosMock.reduce((acc, item) => acc + item.custoPotencial30d, 0);
+
   const custoOportunidades =
     oportunidades['PA evitável'] * 2400 +
     oportunidades['Exame com possível redundância'] * 1650 +
     oportunidades['Consulta com baixa resolutividade'] * 1420 +
     oportunidades['Repetição assistencial'] * 1580;
+
+  const resumoSinistralidade = useMemo(
+    () =>
+      calcularResumoSinistralidade(beneficiariosMock, {
+        receitaMensalCarteira: 2400000,
+        metaSinistralidade: 0.7,
+        faixaAtencao: 1,
+      }),
+    []
+  );
 
   const scoreMedio =
     total > 0
@@ -146,7 +170,8 @@ export default function Home() {
       atual.total += 1;
       atual.scoreTotal += beneficiario.score;
       atual.custoTotal += beneficiario.custoPotencial30d;
-      atual.categorias[evolucao.categoriaPrincipal] = (atual.categorias[evolucao.categoriaPrincipal] ?? 0) + 1;
+      atual.categorias[evolucao.categoriaPrincipal] =
+        (atual.categorias[evolucao.categoriaPrincipal] ?? 0) + 1;
 
       if (beneficiario.risco === 'Alto') atual.altoRisco += 1;
       if (evolucao.riscoFuturo === 'Alto') atual.altoRiscoFuturo += 1;
@@ -244,7 +269,8 @@ export default function Home() {
             </p>
             <h2 className="mt-2 text-2xl font-bold text-slate-900">Fila operacional priorizada</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              Quem exige atuação imediata, quem deve ser ativado nesta semana e quem pode seguir em monitoramento preventivo.
+              Quem exige atuação imediata, quem deve ser ativado nesta semana e quem pode seguir em
+              monitoramento preventivo.
             </p>
           </div>
 
@@ -319,7 +345,9 @@ export default function Home() {
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Base estável</p>
               <p className="mt-2 text-3xl font-bold text-emerald-700">{baseEstavel}</p>
-              <p className="mt-2 text-sm text-slate-500">Baixo risco atual e futuro, com seguimento preservado.</p>
+              <p className="mt-2 text-sm text-slate-500">
+                Baixo risco atual e futuro, com seguimento preservado.
+              </p>
             </div>
           </div>
         </div>
@@ -343,7 +371,9 @@ export default function Home() {
           </p>
 
           <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Economia potencial endereçável</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Economia potencial endereçável
+            </p>
             <p className="mt-2 text-3xl font-bold text-slate-900">{formatCurrency(custoOportunidades)}</p>
             <p className="mt-2 text-sm text-slate-500">
               Leitura executiva para priorizar frentes com maior retorno assistencial e financeiro.
@@ -356,9 +386,12 @@ export default function Home() {
               <p className="mt-2 text-2xl font-bold text-slate-900">{oportunidades['PA evitável']}</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Redundância / baixa resolução</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Redundância / baixa resolução
+              </p>
               <p className="mt-2 text-2xl font-bold text-slate-900">
-                {oportunidades['Exame com possível redundância'] + oportunidades['Consulta com baixa resolutividade']}
+                {oportunidades['Exame com possível redundância'] +
+                  oportunidades['Consulta com baixa resolutividade']}
               </p>
             </div>
           </div>
@@ -393,6 +426,141 @@ export default function Home() {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-rose-700">
+              Sustentabilidade financeira
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-900">Sinistralidade da carteira</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+              Leitura executiva derivada do custo potencial da base, conectada aos drivers clínicos e de
+              eficiência já existentes no Viva+.
+            </p>
+          </div>
+
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+            Meta {formatPercent(0.7)}
+          </span>
+        </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Sinistralidade atual
+            </p>
+            <p className="mt-2 text-3xl font-bold text-slate-900">
+              {formatPercent(resumoSinistralidade.sinistralidadeAtual)}
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              Relação entre custo projetado e receita mensal estimada.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Pós-intervenção</p>
+            <p className="mt-2 text-3xl font-bold text-emerald-700">
+              {formatPercent(resumoSinistralidade.sinistralidadeAjustada)}
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              Cenário com captura parcial do custo evitável.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Gap para meta</p>
+            <p className="mt-2 text-3xl font-bold text-amber-700">
+              {formatPercent(resumoSinistralidade.gapMeta)}
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              Distância atual até o patamar executivo desejado.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Principal driver</p>
+            <p className="mt-2 text-xl font-bold text-slate-900">
+              {resumoSinistralidade.principalDriver}
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              Frente com maior alavanca potencial de redução.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="grid gap-3 text-sm text-slate-600 md:grid-cols-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Custo projetado</p>
+              <p className="mt-1 text-lg font-bold text-slate-900">
+                {formatCurrency(resumoSinistralidade.custoTotalProjetado)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Receita de referência
+              </p>
+              <p className="mt-1 text-lg font-bold text-slate-900">
+                {formatCurrency(resumoSinistralidade.receitaMensalCarteira)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Economia potencial</p>
+              <p className="mt-1 text-lg font-bold text-emerald-700">
+                {formatCurrency(resumoSinistralidade.economiaPotencial)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-sm font-semibold text-slate-900">Participação de custo por risco</p>
+            <div className="mt-4 space-y-3">
+              {resumoSinistralidade.porRisco.map((item) => (
+                <div key={item.risco}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-700">{item.risco}</span>
+                    <span className="font-medium text-slate-900">
+                      {formatPercent(item.participacaoCusto)}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 rounded-full bg-slate-100">
+                    <div
+                      className="h-2 rounded-full bg-slate-900"
+                      style={{ width: `${item.participacaoCusto * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-sm font-semibold text-slate-900">Drivers de redução endereçáveis</p>
+            <div className="mt-4 space-y-3">
+              {resumoSinistralidade.porOportunidade
+                .filter((item) => item.quantidade > 0)
+                .slice(0, 4)
+                .map((item) => (
+                  <div key={item.tipo} className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{item.tipo}</p>
+                      <p className="text-xs text-slate-500">{item.quantidade} casos identificados</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {formatCurrency(item.potencialReducao)}
+                      </p>
+                      <p className="text-xs text-slate-500">potencial de redução</p>
+                    </div>
+                  </div>
+                ))}
+            </div>
           </div>
         </div>
       </section>
@@ -435,7 +603,8 @@ export default function Home() {
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-bold text-slate-900">Distribuição por risco futuro estimado</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Probabilidade de migração de risco com base no score preditivo, eventos, alertas e continuidade de cuidado.
+            Probabilidade de migração de risco com base no score preditivo, eventos, alertas e continuidade
+            de cuidado.
           </p>
 
           <div className="mt-6 space-y-5">
@@ -484,7 +653,8 @@ export default function Home() {
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-bold text-slate-900">Top áreas prioritárias</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Áreas com maior concentração de risco futuro alto e principal driver clínico-operacional para intervenção.
+            Áreas com maior concentração de risco futuro alto e principal driver clínico-operacional para
+            intervenção.
           </p>
 
           <div className="mt-6 space-y-4">
@@ -499,7 +669,8 @@ export default function Home() {
                     <p className="text-sm text-slate-500">#{i + 1}</p>
                     <p className="text-xl font-bold text-slate-900">{area.area}</p>
                     <p className="mt-1 text-sm text-slate-500">
-                      {area.total} beneficiário(s) • {area.altoRisco} alto risco atual • {area.altoRiscoFuturo} alto risco futuro
+                      {area.total} beneficiário(s) • {area.altoRisco} alto risco atual •{' '}
+                      {area.altoRiscoFuturo} alto risco futuro
                     </p>
                     <p className="mt-2 text-sm font-medium text-slate-700">
                       Principal driver: {area.principalDriver}
@@ -545,7 +716,9 @@ export default function Home() {
                   </div>
                 </div>
 
-                <p className="mt-3 text-sm text-slate-700">{gerarResumoScore(beneficiario, beneficiario.score)}</p>
+                <p className="mt-3 text-sm text-slate-700">
+                  {gerarResumoScore(beneficiario, beneficiario.score)}
+                </p>
                 <p className="mt-2 text-sm text-slate-500">{evolucao.justificativaAnalitica}</p>
               </Link>
             ))}
