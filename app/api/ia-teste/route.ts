@@ -29,9 +29,24 @@ Formato obrigatório:
 
     const response = await model.invoke(prompt);
 
+    let respostaParseada: unknown;
+
+    try {
+      respostaParseada = JSON.parse(String(response.content));
+    } catch {
+      return NextResponse.json(
+        {
+          ok: false,
+          erro: 'A IA respondeu, mas o JSON veio inválido.',
+          resposta_bruta: response.content,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       ok: true,
-      resposta: response.content,
+      resposta: respostaParseada,
     });
   } catch (error) {
     console.error('Erro no teste de IA:', error);
@@ -40,6 +55,7 @@ Formato obrigatório:
       {
         ok: false,
         erro: 'Falha ao executar teste de IA.',
+        detalhe: error instanceof Error ? error.message : 'Erro desconhecido',
       },
       { status: 500 }
     );
