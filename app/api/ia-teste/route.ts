@@ -10,12 +10,24 @@ export async function GET() {
       temperature: 0.2,
     });
 
-    const response = await model.invoke(`
+    const prompt = `
 Você é um especialista em gestão de saúde populacional.
 
-Resuma em no máximo 3 linhas:
+Analise o caso abaixo e responda em JSON válido.
+
 Paciente com diabetes, hipertensão e aumento recente de custo assistencial.
-`);
+
+Formato obrigatório:
+{
+  "resumo_executivo": "",
+  "drivers_risco": [],
+  "prioridade_acao": "monitorar | atuar_semana | imediato",
+  "acao_recomendada": "",
+  "justificativa": ""
+}
+`;
+
+    const response = await model.invoke(prompt);
 
     return NextResponse.json({
       ok: true,
@@ -28,7 +40,6 @@ Paciente com diabetes, hipertensão e aumento recente de custo assistencial.
       {
         ok: false,
         erro: 'Falha ao executar teste de IA.',
-        detalhe: error instanceof Error ? error.message : 'Erro desconhecido',
       },
       { status: 500 }
     );
