@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { beneficiariosMock } from '../../../../data/mock';
+import { beneficiariosMock } from '../../../data/mock';
 import { ChatOpenAI } from '@langchain/openai';
 
 export const runtime = 'nodejs';
