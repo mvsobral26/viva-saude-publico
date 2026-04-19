@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AppShell from '../../components/AppShell';
 import Badge, {
@@ -24,6 +24,32 @@ function getPreRiskBadgeVariant(nivel: ReturnType<typeof gerarEvolucaoRisco>['ni
   return 'alert-low';
 }
 
+type AnaliseIA = {
+  resumo_executivo: string;
+  drivers_risco: string[];
+  prioridade_acao: 'monitorar' | 'atuar_semana' | 'imediato';
+  acao_recomendada: string;
+  justificativa: string;
+};
+
+function getPrioridadeIaClasses(prioridade: AnaliseIA['prioridade_acao']) {
+  if (prioridade === 'imediato') {
+    return 'border-red-200 bg-red-50 text-red-700';
+  }
+
+  if (prioridade === 'atuar_semana') {
+    return 'border-amber-200 bg-amber-50 text-amber-700';
+  }
+
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+}
+
+function getPrioridadeIaLabel(prioridade: AnaliseIA['prioridade_acao']) {
+  if (prioridade === 'imediato') return 'Imediato';
+  if (prioridade === 'atuar_semana') return 'Atuar nesta semana';
+  return 'Monitorar';
+}
+
 export default function BeneficiarioDetalhePage() {
   const params = useParams();
   const router = useRouter();
@@ -33,6 +59,36 @@ export default function BeneficiarioDetalhePage() {
   const timeline = useMemo(() => (beneficiario ? buildUnifiedTimeline(beneficiario) : []), [beneficiario]);
   const declaracao = useMemo(() => (beneficiario ? buildExpandedDeclaration(beneficiario) : null), [beneficiario]);
   const evolucao = useMemo(() => (beneficiario ? gerarEvolucaoRisco(beneficiario) : null), [beneficiario]);
+  const [analiseIA, setAnaliseIA] = useState<AnaliseIA | null>(null);
+  const [carregandoIA, setCarregandoIA] = useState(false);
+  const [erroIA, setErroIA] = useState<string | null>(null);
+
+  async function handleAnalisarIA() {
+    if (!beneficiario) return;
+
+    setCarregandoIA(true);
+    setErroIA(null);
+
+    try {
+      const response = await fetch(`/api/ia-beneficiario/${beneficiario.id}`, {
+        method: 'GET',
+        cache: 'no-store',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data?.ok) {
+        setErroIA(data?.erro ?? 'Não foi possível gerar a análise com IA.');
+        return;
+      }
+
+      setAnaliseIA(data.resposta as AnaliseIA);
+    } catch {
+      setErroIA('Não foi possível gerar a análise com IA.');
+    } finally {
+      setCarregandoIA(false);
+    }
+  }
 
   const groupedDeclaration = useMemo(
     () =>
@@ -89,6 +145,15 @@ export default function BeneficiarioDetalhePage() {
                 >
                   Ver plano assistencial
                 </button>
+
+                <button
+                  type="button"
+                  onClick={handleAnalisarIA}
+                  disabled={carregandoIA}
+                  className="inline-flex items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {carregandoIA ? 'Analisando com IA...' : analiseIA ? 'Gerar nova análise com IA' : 'Analisar com IA'}
+                </button>
               </div>
 
               <p className="mt-5 text-sm font-medium text-emerald-600">Detalhe clínico e assistencial</p>
@@ -122,6 +187,90 @@ export default function BeneficiarioDetalhePage() {
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-medium text-emerald-600">Análise assistida por IA</p>
+              <h2 className="mt-1 text-2xl font-bold text-slate-900">Resumo executivo e recomendação operacional</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Gere uma leitura objetiva do caso com drivers de risco, prioridade e ação sugerida sem alterar os dados originais do beneficiário.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAnalisarIA}
+              disabled={carregandoIA}
+              className="inline-flex items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {carregandoIA ? 'Analisando com IA...' : analiseIA ? 'Atualizar análise' : 'Executar análise'}
+            </button>
+          </div>
+
+          {erroIA ? (
+            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {erroIA}
+            </div>
+          ) : null}
+
+          {analiseIA ? (
+            <div className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Prioridade sugerida</p>
+                    <span
+                      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getPrioridadeIaClasses(
+                        analiseIA.prioridade_acao
+                      )}`}
+                    >
+                      {getPrioridadeIaLabel(analiseIA.prioridade_acao)}
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-sm leading-6 text-slate-700">{analiseIA.resumo_executivo}</p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Ação recomendada</p>
+                  <p className="mt-3 text-sm leading-6 text-slate-700">{analiseIA.acao_recomendada}</p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Justificativa</p>
+                  <p className="mt-3 text-sm leading-6 text-slate-700">{analiseIA.justificativa}</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Drivers de risco</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {analiseIA.drivers_risco.length > 0 ? (
+                    analiseIA.drivers_risco.map((driver) => (
+                      <span
+                        key={driver}
+                        className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700"
+                      >
+                        {driver}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-slate-500">Sem drivers retornados pela IA.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6">
+              <p className="text-sm font-semibold text-slate-900">Nenhuma análise gerada ainda</p>
+              <p className="mt-2 text-sm text-slate-500">
+                Clique em <span className="font-medium text-slate-700">Executar análise</span> para gerar um resumo executivo,
+                drivers de risco e recomendação operacional a partir dos dados atuais deste beneficiário.
+              </p>
+            </div>
+          )}
         </section>
 
         <section className="grid gap-6 xl:grid-cols-4">
@@ -246,9 +395,7 @@ export default function BeneficiarioDetalhePage() {
               {timeline.slice(0, 6).map((evento, index) => {
                 const status = getStatusEvento(evento.data);
                 const eventVariant =
-                  evento.tipo === 'Internação'
-                    ? 'event-procedimento'
-                    : getEventBadgeVariant(evento.tipo);
+                  evento.tipo === 'Internação' ? 'event-procedimento' : getEventBadgeVariant(evento.tipo);
 
                 return (
                   <div
