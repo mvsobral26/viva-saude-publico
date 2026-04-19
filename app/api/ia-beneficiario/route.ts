@@ -4,9 +4,10 @@ import { ChatOpenAI } from '@langchain/openai';
 
 export const runtime = 'nodejs';
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const beneficiarioId = Number(params.id);
+    const { id } = await params;
+    const beneficiarioId = Number(id);
 
     const beneficiario = beneficiariosMock.find((b) => b.id === beneficiarioId);
 
@@ -75,7 +76,11 @@ Formato:
     });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, erro: 'Erro na IA' },
+      {
+        ok: false,
+        erro: 'Erro na IA',
+        detalhe: error instanceof Error ? error.message : 'Erro desconhecido',
+      },
       { status: 500 }
     );
   }
