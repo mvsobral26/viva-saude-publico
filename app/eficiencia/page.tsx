@@ -224,7 +224,7 @@ export default function EficienciaAssistencialPage() {
         <Card padded={false}>
           <TableTitle
             title="Oportunidades de otimização"
-            subtitle="O clique leva para uma tela própria com o histórico detalhado do beneficiário dentro do contexto de eficiência assistencial."
+            subtitle="Oportunidades identificadas a partir de padrões de uso, redundância assistencial e baixa resolutividade, priorizadas por impacto clínico e potencial de redução de custo."
           />
           <TableWrapper>
             <table className="w-full text-left">
