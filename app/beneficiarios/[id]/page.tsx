@@ -159,7 +159,7 @@ export default function BeneficiarioDetalhePage() {
               <p className="mt-5 text-sm font-medium text-emerald-600">Detalhe clínico e assistencial</p>
               <h1 className="mt-1 text-3xl font-bold text-slate-900">{beneficiario.nome}</h1>
               <p className="mt-2 text-sm text-slate-500">
-                Score, condição clínica, declaração de saúde, medicamentos, eventos sincronizados e evolução prognóstica.
+                Consolida score, condição clínica, declaração de saúde, medicamentos, eventos sincronizados e evolução prognóstica.
               </p>
 
               <div className="mt-4 flex flex-wrap gap-2">
@@ -195,10 +195,11 @@ export default function BeneficiarioDetalhePage() {
               <p className="text-sm font-medium text-emerald-600">Análise assistida por IA</p>
               <h2 className="mt-1 text-2xl font-bold text-slate-900">Resumo executivo e recomendação operacional</h2>
               <p className="mt-2 text-sm text-slate-500">
-                Leitura objetiva do caso com drivers de risco, prioridade e ação sugerida.
+                Gere uma leitura objetiva do caso com drivers de risco, prioridade e ação sugerida sem alterar os dados originais do beneficiário.
               </p>
             </div>
-     
+          </div>
+
           {erroIA ? (
             <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               {erroIA}
