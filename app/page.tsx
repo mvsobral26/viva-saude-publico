@@ -215,15 +215,15 @@ export default function Home() {
   }, [evolucoes]);
 
   const principaisOportunidades = [
+     {
+      tipo: 'Exame com possível redundância' as TipoOportunidade,
+      valor: oportunidades['Exame com possível redundância'],
+      descricao: 'Mesma solicitação repetida sem ganho assistencial aparente.',
+    },
     {
       tipo: 'PA evitável' as TipoOportunidade,
       valor: oportunidades['PA evitável'],
       descricao: 'Uso recorrente de pronto atendimento em janela curta.',
-    },
-    {
-      tipo: 'Exame com possível redundância' as TipoOportunidade,
-      valor: oportunidades['Exame com possível redundância'],
-      descricao: 'Mesma solicitação repetida sem ganho assistencial aparente.',
     },
     {
       tipo: 'Consulta com baixa resolutividade' as TipoOportunidade,
