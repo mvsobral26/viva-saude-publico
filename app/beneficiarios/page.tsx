@@ -110,16 +110,16 @@ export default function BeneficiariosPage() {
   }
 
   const sugestoesNome = useMemo(() => {
-    const termo = buscaNome.trim().toLowerCase();
+  const termo = buscaNome.trim().toLowerCase();
 
-    const baseOrdenada = ordenarAlfabeticamente(beneficiariosMock, (item) => item.nome);
+  if (!termo) {
+    return [];
+  }
 
-    if (!termo) {
-      return baseOrdenada.slice(0, 20);
-    }
+  const baseOrdenada = ordenarAlfabeticamente(beneficiariosMock, (item) => item.nome);
 
-    return baseOrdenada.filter((beneficiario) => beneficiario.nome.toLowerCase().includes(termo)).slice(0, 20);
-  }, [buscaNome]);
+  return baseOrdenada.filter((beneficiario) => beneficiario.nome.toLowerCase().includes(termo)).slice(0, 20);
+}, [buscaNome]);
 
   const beneficiariosBase = useMemo(() => {
     return beneficiariosMock.filter((beneficiario) => {
@@ -266,14 +266,15 @@ export default function BeneficiariosPage() {
                   value={buscaNome}
                   disabled={nomeDesabilitado}
                   onChange={(e) => {
-                    selecionarFiltroNome(e.target.value);
-                    setMostrarSugestoes(true);
-                  }}
-                  onFocus={() => {
-                    if (!nomeDesabilitado) {
-                      setMostrarSugestoes(true);
-                    }
-                  }}
+  const valor = e.target.value;
+  selecionarFiltroNome(valor);
+  setMostrarSugestoes(Boolean(valor.trim()));
+}}
+                 onFocus={() => {
+  if (!nomeDesabilitado && buscaNome.trim()) {
+    setMostrarSugestoes(true);
+  }
+}}
                   placeholder="Digite para buscar por nome"
                   className={`w-full rounded-xl border px-4 py-3 text-sm font-medium outline-none transition ${
                     nomeDesabilitado
@@ -282,26 +283,32 @@ export default function BeneficiariosPage() {
                   }`}
                 />
 
-                {!nomeDesabilitado && mostrarSugestoes && sugestoesNome.length > 0 ? (
-                  <div className="absolute z-20 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-slate-300 bg-white p-2 shadow-xl">
-                    {sugestoesNome.map((beneficiario) => (
-                      <button
-                        key={beneficiario.id}
-                        type="button"
-                        onClick={() => {
-                          selecionarFiltroNome(beneficiario.nome);
-                          setMostrarSugestoes(false);
-                        }}
-                        className="w-full rounded-xl px-3 py-3 text-left transition hover:bg-slate-50"
-                      >
-                        <p className="truncate text-sm font-semibold text-slate-950">{beneficiario.nome}</p>
-                        <p className="mt-1 truncate text-xs text-slate-500">
-                          {beneficiario.area} • {beneficiario.status}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
+                {!nomeDesabilitado && buscaNome.trim() && mostrarSugestoes ? (
+  <div className="absolute z-20 mt-2 max-h-80 w-full overflow-auto rounded-2xl border border-slate-300 bg-white p-2 shadow-xl">
+    {sugestoesNome.length > 0 ? (
+      sugestoesNome.map((beneficiario) => (
+        <button
+          key={beneficiario.id}
+          type="button"
+          onClick={() => {
+            selecionarFiltroNome(beneficiario.nome);
+            setMostrarSugestoes(false);
+          }}
+          className="w-full rounded-xl px-3 py-3 text-left transition hover:bg-slate-50"
+        >
+          <p className="truncate text-sm font-semibold text-slate-950">{beneficiario.nome}</p>
+          <p className="mt-1 truncate text-xs text-slate-500">
+            {beneficiario.area} • {beneficiario.status}
+          </p>
+        </button>
+      ))
+    ) : (
+      <div className="px-3 py-3 text-sm text-slate-500">
+        Nenhum beneficiário encontrado para essa busca.
+      </div>
+    )}
+  </div>
+) : null}
               </div>
 
               <div className="min-w-0">
