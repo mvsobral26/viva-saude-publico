@@ -234,9 +234,7 @@ export default function BeneficiariosPage() {
                 <h2 className="text-xl font-bold text-slate-900">
                   {modoFila === 'fila' ? 'Fila operacional' : 'Base completa'}
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Beneficiários exibidos sem forçar largura horizontal.
-                </p>
+            
               </div>
             </div>
 
