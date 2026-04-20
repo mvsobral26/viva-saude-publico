@@ -69,8 +69,8 @@ export default function Home() {
 
   const oportunidades = useMemo(() => {
     const base = {
-      'PA evitável': 0,
       'Exame com possível redundância': 0,
+      'PA evitável': 0,
       'Consulta com baixa resolutividade': 0,
       'Repetição assistencial': 0,
     } as Record<TipoOportunidade, number>;
