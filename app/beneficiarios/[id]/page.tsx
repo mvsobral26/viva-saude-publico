@@ -266,7 +266,7 @@ export default function BeneficiarioDetalhePage() {
             <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6">
               <p className="text-sm font-semibold text-slate-900">Nenhuma análise gerada ainda</p>
               <p className="mt-2 text-sm text-slate-500">
-                Clique em <span className="font-medium text-slate-700">Executar análise</span> para gerar um resumo executivo,
+                Clique em <span className="font-medium text-slate-700">Analisar com IA</span> para gerar um resumo executivo,
                 drivers de risco e recomendação operacional a partir dos dados atuais deste beneficiário.
               </p>
             </div>
