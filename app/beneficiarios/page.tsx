@@ -300,7 +300,7 @@ function BeneficiariosPageContent() {
           <PageHeader
             eyebrow="Fila operacional"
             title="Beneficiários"
-            description="Organize a carteira como um CRM de cuidado: quem atuar agora, quem ativar nesta semana e quem pode seguir em monitoramento preventivo, sem perder a próxima melhor ação."
+            description="Organize a carteira com um CRM de cuidado: quem atuar agora, quem ativar nesta semana e quem pode seguir em monitoramento preventivo."
             meta={
               <div className="max-w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
                 {beneficiariosFiltrados.length} beneficiário(s) na fila atual
