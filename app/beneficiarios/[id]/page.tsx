@@ -198,17 +198,7 @@ export default function BeneficiarioDetalhePage() {
                 Leitura objetiva do caso com drivers de risco, prioridade e ação sugerida.
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={handleAnalisarIA}
-              disabled={carregandoIA}
-              className="inline-flex items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {carregandoIA ? 'Analisando com IA...' : analiseIA ? 'Atualizar análise' : 'Executar análise'}
-            </button>
-          </div>
-
+     
           {erroIA ? (
             <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               {erroIA}
